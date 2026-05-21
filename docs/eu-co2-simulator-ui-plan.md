@@ -7,14 +7,14 @@
 
 ## 実装 TODO
 
-- [ ] Next.js + Tailwind + shadcn/ui プロジェクトを new-tool に作成
-- [ ] types/constants/defaults/selectors・CalculationResult・pane3-static-demo を定義
-- [ ] SimulatorProvider + useSimulatorState（年別規制・行ID・名前付きupdater）
-- [ ] AppHeader + ContextBar + SimulatorShell（pageはServerのまま）
-- [ ] Pane1Portfolio: 2表切替・車種表・10行上限・BEV WLTP 固定
-- [ ] Pane2Regulation: 年次・プリセット・重量補正UI・詳細折りたたみ
-- [ ] Pane3（デモ視覚差別化・非色依存達成表示）+ Pane4（モックAI）
-- [ ] npm run build + hook/updater最小テスト + 手動UX確認
+- [x] Next.js + Tailwind + shadcn/ui プロジェクトを new-tool に作成
+- [x] types/constants/defaults/selectors・CalculationResult・pane3-static-demo を定義
+- [x] SimulatorProvider + useSimulatorState（年別規制・行ID・名前付きupdater）
+- [x] AppHeader + ContextBar + SimulatorShell（pageはServerのまま）
+- [x] Pane1Portfolio: 2表切替・車種表・10行上限・BEV WLTP 固定
+- [x] Pane2Regulation: 年次・プリセット・重量補正UI・詳細折りたたみ
+- [x] Pane3（デモ視覚差別化・非色依存達成表示）+ Pane4（モックAI）
+- [x] npm run build + hook/updater最小テスト + 手動UX確認
 
 ---
 
