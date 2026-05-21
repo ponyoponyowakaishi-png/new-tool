@@ -67,11 +67,12 @@ export function Pane4Analyst() {
   };
 
   return (
-    <section id="pane-4" className="scroll-mt-24">
+    <div>
       <PaneSectionHeader
+        compact
         number={4}
-        title="AI環境アナリスト"
-        description="社内向けの逆算シナリオとエグゼクティブ・サマリー（モック応答）"
+        title="AIアナリスト"
+        description="社内向けモック（逆算＋要約）"
         badge="モック"
       />
 
@@ -101,7 +102,7 @@ export function Pane4Analyst() {
             <Skeleton className="h-32 w-full" />
           </div>
         ) : shown ? (
-          <ScrollArea className="max-h-[70vh] pr-4">
+          <ScrollArea className="h-[min(50vh,400px)] pr-4">
             <div className="prose-sm max-w-none">
               {renderMarkdownLines(PANE4_MOCK_MARKDOWN)}
             </div>
@@ -112,6 +113,6 @@ export function Pane4Analyst() {
           </p>
         )}
       </div>
-    </section>
+    </div>
   );
 }

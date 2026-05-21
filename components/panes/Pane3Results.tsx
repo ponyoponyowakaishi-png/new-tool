@@ -16,22 +16,20 @@ const demo = PANE3_STATIC_DEMO;
 
 export function Pane3Results() {
   return (
-    <section
-      id="pane-3"
-      className="scroll-mt-24 rounded-xl border border-amber-500/40 border-l-4 border-l-amber-500 bg-card p-6 shadow-sm"
-    >
+    <div>
       <PaneSectionHeader
+        compact
         number={3}
-        title="リアルタイム計算結果"
-        description="フリート平均・達成率・罰金（Phase 2 で Pane 1・2 と接続予定）"
-        badge="デモ表示（入力未連動）"
+        title="計算結果"
+        description="Phase 2 で Pane 1・2 と接続"
+        badge="デモ・未連動"
         badgeVariant="outline"
       />
 
-      <Alert className="mb-4 border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/30">
-        <AlertTitle>計算は次フェーズで接続します</AlertTitle>
-        <AlertDescription>
-          Pane 1・2 の変更は反映されません。表示はサンプル計算結果（参考値）です。
+      <Alert className="mb-3 border-amber-200 bg-amber-50 py-2 dark:border-amber-900 dark:bg-amber-950/30">
+        <AlertTitle className="text-xs">計算は次フェーズ</AlertTitle>
+        <AlertDescription className="text-xs">
+          Pane 1・2 の変更は反映されません（参考値）。
         </AlertDescription>
       </Alert>
 
@@ -55,7 +53,7 @@ export function Pane3Results() {
         </Badge>
       </div>
 
-      <div className="mb-8 grid gap-4 opacity-60 sm:grid-cols-3">
+      <div className="mb-4 grid gap-3 opacity-60">
         <HeroMetric
           label="規制達成率"
           value={
@@ -103,7 +101,7 @@ export function Pane3Results() {
           />
         </CollapsibleContent>
       </Collapsible>
-    </section>
+    </div>
   );
 }
 
@@ -128,7 +126,7 @@ function HeroMetric({
   return (
     <div className="rounded-xl border bg-background p-4">
       <p className="text-xs text-muted-foreground">{label}</p>
-      <p className={`mt-2 text-3xl font-bold tabular-nums ${color}`}>{value}</p>
+      <p className={`mt-1 text-2xl font-bold tabular-nums ${color}`}>{value}</p>
       <p className="mt-1 text-xs text-muted-foreground">{sub}</p>
     </div>
   );

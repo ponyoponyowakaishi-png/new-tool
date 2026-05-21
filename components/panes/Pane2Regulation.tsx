@@ -48,11 +48,12 @@ export function Pane2Regulation() {
   };
 
   return (
-    <section id="pane-2" className="scroll-mt-24">
+    <div>
       <PaneSectionHeader
+        compact
         number={2}
-        title="規制シナリオ設定"
-        description="対象年・クレジット・罰金単価など。プリセットは選択中の対象年のみ上書きします"
+        title="規制シナリオ"
+        description="対象年・クレジット・罰金。プリセットは選択年のみ上書き"
         trailing={
           <Select
             value={String(year)}
@@ -60,7 +61,7 @@ export function Pane2Regulation() {
               actions.setSelectedYear(Number(v) as RegulationYear)
             }
           >
-            <SelectTrigger className="w-[120px]" aria-label="対象年">
+            <SelectTrigger className="w-full min-w-[88px]" aria-label="対象年">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -74,7 +75,7 @@ export function Pane2Regulation() {
         }
       />
 
-      <div className="space-y-8">
+      <div className="space-y-6">
         <div>
           <h3 className="mb-3 text-sm font-semibold">対象年と年次目標</h3>
           <div className="overflow-x-auto rounded-lg border">
@@ -250,7 +251,7 @@ export function Pane2Regulation() {
           </CollapsibleContent>
         </Collapsible>
       </div>
-    </section>
+    </div>
   );
 }
 

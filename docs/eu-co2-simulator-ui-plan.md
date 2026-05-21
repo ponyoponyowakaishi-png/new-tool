@@ -1,9 +1,10 @@
 # 欧州CO₂シミュレーター — UIのみ完成計画
 
-> **保存日**: 2026-05-21  
+> **保存日**: 2026-05-21（レイアウト更新: 横4ペイン）  
 > **関連**: [eu-co2-simulator-grill-decisions.md](./eu-co2-simulator-grill-decisions.md)（グリル合意）  
 > **フェーズ**: UI のみ（計算・保存・API は Phase 2）  
-> **Pane 3**: 固定サンプル数値（入力変更に非連動）— ユーザー確認済み
+> **Pane 3**: 固定サンプル数値（入力変更に非連動）— ユーザー確認済み  
+> **レイアウト**: **横4分割**（各ペイン内スクロール）— ユーザー指示で縦積みから変更
 
 ## 実装 TODO
 
@@ -21,7 +22,7 @@
 ## 現状
 
 - [new-tool](../) には本ドキュメントと `eu-co2-simulator-grill-decisions.md` のみ（アプリ未作成）
-- 合意ドキュメントは **縦4分割・スクロール可能なカード型ダッシュボード**（[workspace-ui-kit](https://git.ai-driven-school-portal.com/ADS/workspace-ui-kit) の横4ペインとはレイアウトが異なる → **新規構成で実装**）
+- レイアウトは **横4分割ワークスペース**（[workspace-ui-kit](https://git.ai-driven-school-portal.com/ADS/workspace-ui-kit) と同様の発想。コンポーネント本体は流用しない）
 
 ## UIフェーズのスコープ
 
@@ -45,18 +46,24 @@ flowchart TB
     Shell[SimulatorShell client]
   end
   subgraph shell [SimulatorProvider]
-    Header[AppHeader + ContextBar]
-    P1[Pane1Portfolio]
-    P2[Pane2Regulation]
-    P3[Pane3Results]
-    P4[Pane4Analyst]
+    Header[AppHeader + ScopeAlerts + ContextBar]
+    Row[flex row 4 equal columns]
+    P1[Pane1]
+    P2[Pane2]
+    P3[Pane3 demo]
+    P4[Pane4]
   end
   subgraph lib [lib]
     Types[types.ts]
     Selectors[selectors.ts]
-    Demo[pane3-static-demo as CalculationResult]
+    Demo[pane3-static-demo]
   end
   Shell --> shell
+  Header --> Row
+  Row --> P1
+  Row --> P2
+  Row --> P3
+  Row --> P4
   Selectors --> P1
   Selectors --> P2
   Demo --> P3
@@ -79,7 +86,7 @@ flowchart TB
 4. `app/globals.css`: 社内ツール向けトーン（白背景・neutral/slate・達成=緑・未達=赤のセマンティック色）
 5. `app/layout.tsx`: 日本語 `lang="ja"`、ツール名メタ
 
-**参考**: workspace-ui-kit の shadcn 導入手順は参考にするが、**横4ペインの Workspace コンポーネントは流用しない**。
+**参考**: workspace-ui-kit の shadcn 導入手順・横並びワークスペースの UX は参考にするが、**Workspace コンポーネント本体は流用しない**（`WorkspacePane` を自前実装）。
 
 ---
 
@@ -118,21 +125,22 @@ flowchart TB
 `app/page.tsx` → `<SimulatorShell />` のみ
 
 ```
-max-w-5xl mx-auto px-4 py-6 space-y-6
-├─ AppHeader（タイトル・サンプル Badge・disabled Export/Import + Tooltip）
-├─ Alert: 社内専用・試算目的
-├─ Alert collapsible: プール・エコイノベ未対応（§3 誤解防止）
-├─ ContextBar（sticky 候補）: [対象年] [ポートフォリオ: 2025/2026表] [計算: デモ固定]
-├─ TOC（md+）: Pane1–4 アンカーリンク（Should）
-├─ Pane1（Card + 共通 Pane ヘッダー）
-├─ Pane2
-├─ Pane3（デモ視覚: 左 amber ボーダー / opacity 弱化）
-└─ Pane4
+h-screen flex flex-col
+├─ header（shrink-0, border-b）
+│   ├─ AppHeader
+│   ├─ ScopeAlerts（2列グリッド・コンパクト）
+│   └─ ContextBar: [対象年] [ポートフォリオ表] [計算: デモ固定]
+└─ flex flex-1 min-h-0（横4ペイン）
+    ├─ WorkspacePane #pane-1 → Pane1Portfolio（overflow-y-auto）
+    ├─ WorkspacePane #pane-2 → Pane2Regulation
+    ├─ WorkspacePane #pane-3 variant=demo → Pane3Results
+    └─ WorkspacePane #pane-4 → Pane4Analyst
 ```
 
-**Pane 共通ヘッダー**: 番号 + タイトル + 1行説明 + 右 Badge（サンプル / デモ / モック）
-
-各 Pane: `rounded-xl border bg-card shadow-sm p-6`、見出し + lucide アイコン。
+- 各列は `flex-1 min-w-0` で等幅、**列内のみ縦スクロール**
+- `components/layout/WorkspacePane.tsx` で枠とスクロールを共通化
+- **PaneNav（アンカー TOC）は廃止**（横並びで不要）
+- **Pane 共通ヘッダー**: `compact` モード（番号・短いタイトル・Badge）
 
 ---
 
@@ -215,6 +223,7 @@ app/
 components/
   layout/AppHeader.tsx
   layout/ContextBar.tsx
+  layout/WorkspacePane.tsx
   simulator/SimulatorShell.tsx
   simulator/SimulatorProvider.tsx
   panes/Pane1Portfolio.tsx … Pane4Analyst.tsx
@@ -248,13 +257,13 @@ docs/
 3. `SimulatorProvider` + `useSimulatorState` + updater テスト
 4. `AppHeader` + `ContextBar` + `SimulatorShell`
 5. Pane 1 → 2 → 3（デモ視覚）→ 4
-6. 手動: 文脈バー・デモ Pane3 錯覚防止・TOC・表横スクロール・プリセット toast
+6. 手動: 横4ペイン等幅・各列スクロール・デモ Pane3 錯覚防止・表横スクロール・プリセット toast
 
 ---
 
 ## 8. 完了の定義（UIフェーズ）
 
-- [ ] 4 Pane が縦に並び、スクロールで一通り操作できる
+- [x] 4 Pane が横に並び、各ペイン内スクロールで一通り操作できる
 - [ ] Pane 1: 2025/2026 の2表切替・10行・全列・サンプル Badge
 - [ ] Pane 2: 対象年・年次表・プリセット・折りたたみ係数・手入力上書き
 - [ ] ContextBar: 対象年・ポートフォリオ表・計算デモ固定が常時見える

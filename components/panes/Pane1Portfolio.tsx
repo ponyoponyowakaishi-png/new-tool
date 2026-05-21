@@ -54,11 +54,12 @@ export function Pane1Portfolio() {
   const totalUnits = getTotalSalesUnits(rows);
 
   return (
-    <section id="pane-1" className="scroll-mt-24">
+    <div>
       <PaneSectionHeader
+        compact
         number={1}
-        title="販売ポートフォリオ設定"
-        description="販売台数・WLTP・車両重量からフリート構成を定義します（2つのベース表を別々に保持）"
+        title="販売ポートフォリオ"
+        description="2つのベース表を別保持。台数・WLTP・重量を入力"
         badge="サンプル"
         trailing={
           <Select
@@ -67,7 +68,7 @@ export function Pane1Portfolio() {
               actions.setActivePortfolio(v as ActivePortfolioKey)
             }
           >
-            <SelectTrigger className="w-[220px]" aria-label="販売データのベース">
+            <SelectTrigger className="w-full min-w-[140px]" aria-label="販売データのベース">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -226,6 +227,6 @@ export function Pane1Portfolio() {
         </Button>
         <p className="text-xs text-muted-foreground">最大 {MAX_VEHICLES} 車種</p>
       </div>
-    </section>
+    </div>
   );
 }

@@ -10,18 +10,18 @@ import {
 
 export function ScopeAlerts() {
   return (
-    <div className="space-y-3">
-      <Alert>
-        <AlertTitle>社内専用・試算ツール</AlertTitle>
-        <AlertDescription>
-          公式申告の代替ではありません。結果は社内検討用のたたき台としてご利用ください。
+    <div className="grid gap-2 lg:grid-cols-2">
+      <Alert className="py-2">
+        <AlertTitle className="text-xs">社内専用・試算ツール</AlertTitle>
+        <AlertDescription className="text-xs">
+          公式申告の代替ではありません。社内検討用のたたき台としてご利用ください。
         </AlertDescription>
       </Alert>
       <Collapsible>
-        <Alert variant="default" className="pb-2">
-          <AlertTitle>v1 対象外の法規要素</AlertTitle>
-          <AlertDescription>
-            プール（複数メーカー合算）・エコイノベ（Eco-innovation）は未対応です。単一メーカーのフリート試算前提です。
+        <Alert variant="default" className="py-2 pb-2">
+          <AlertTitle className="text-xs">v1 対象外</AlertTitle>
+          <AlertDescription className="text-xs">
+            プール・エコイノベは未対応。単一メーカーフリート前提です。
           </AlertDescription>
           <CollapsibleTrigger className="mt-2 flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground">
             <ChevronDown className="size-3.5" />
