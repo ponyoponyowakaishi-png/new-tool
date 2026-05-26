@@ -130,15 +130,17 @@ h-screen flex flex-col
 │   ├─ AppHeader
 │   ├─ ScopeAlerts（2列グリッド・コンパクト）
 │   └─ ContextBar: [対象年] [ポートフォリオ表] [計算: デモ固定]
-└─ flex flex-1 min-h-0（横4ペイン）
-    ├─ WorkspacePane #pane-1 → Pane1Portfolio（overflow-y-auto）
+└─ flex flex-1 min-h-0（横3ペイン＋任意でPane4）
+    ├─ WorkspacePane #pane-1 → Pane1Portfolio
     ├─ WorkspacePane #pane-2 → Pane2Regulation
     ├─ WorkspacePane #pane-3 variant=demo → Pane3Results
-    └─ WorkspacePane #pane-4 → Pane4Analyst
+    ├─ WorkspacePane #pane-4（任意・既定は非表示、幅固定）
+    └─ Pane4Rail（右端トグル・「AI分析」）
 ```
 
 - 各列は `flex-1 min-w-0` で等幅、**列内のみ縦スクロール**
 - `components/layout/WorkspacePane.tsx` で枠とスクロールを共通化
+- **Pane 4 は既定で閉じる**。右端 `Pane4Rail` ボタンで開閉（開いているときは Pane 1〜3 + Pane 4）
 - **PaneNav（アンカー TOC）は廃止**（横並びで不要）
 - **Pane 共通ヘッダー**: `compact` モード（番号・短いタイトル・Badge）
 
