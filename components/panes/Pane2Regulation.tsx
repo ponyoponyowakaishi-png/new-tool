@@ -193,7 +193,6 @@ export function Pane2Regulation() {
                   ? `${displayTarget} g/km`
                   : "—"
               }
-              large
             />
           </dl>
           <div className="mt-4 flex items-center gap-2">
@@ -280,27 +279,11 @@ function Field({
   );
 }
 
-function Metric({
-  label,
-  value,
-  large,
-}: {
-  label: string;
-  value: string;
-  large?: boolean;
-}) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-lg border bg-muted/20 px-4 py-3">
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd
-        className={
-          large
-            ? "mt-1 text-2xl font-semibold tabular-nums"
-            : "mt-1 text-sm font-medium tabular-nums"
-        }
-      >
-        {value}
-      </dd>
+      <dd className="mt-1 text-sm font-medium tabular-nums">{value}</dd>
     </div>
   );
 }
