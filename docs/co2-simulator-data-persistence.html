@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta property="og:title" content="欧州CO₂シミュレーター — データ保存の全体像">
+  <meta property="og:description" content="旧合意（localStorage+JSON）と現行合意（Neon PostgreSQL）の違いを含め、データ保存の全体像を図解します。">
+  <meta property="og:type" content="article">
+  <title>欧州CO₂シミュレーター — データ保存の全体像</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23FFFFFF'/><rect x='8' y='8' width='84' height='84' rx='14' fill='none' stroke='%233B82F6' stroke-width='4'/><circle cx='32' cy='40' r='10' fill='%233B82F6' opacity='0.8'/><circle cx='68' cy='40' r='10' fill='%2360A5FA' opacity='0.8'/><rect x='25' y='62' width='50' height='6' rx='3' fill='%2394A3B8' opacity='0.6'/><rect x='30' y='74' width='40' height='6' rx='3' fill='%2394A3B8' opacity='0.3'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ads: {
+              bg: '#FFFFFF',
+              surface: '#F8FAFC',
+              hover: '#F1F5F9',
+              border: '#E2E8F0',
+              accent: '#3B82F6',
+              'accent-light': '#2563EB',
+              text: '#1E293B',
+              muted: '#64748B',
+              dim: '#94A3B8',
+              positive: '#10B981',
+              negative: '#EF4444',
+              warning: '#F59E0B',
+            }
+          },
+          fontFamily: {
+            sans: ['"Noto Sans JP"', '"Hiragino Sans"', '"Hiragino Kaku Gothic ProN"', '"Yu Gothic UI"', '"Meiryo"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { border-top: none !important; }
+      .rounded-xl { break-inside: avoid; }
+      .md\:flex-row { flex-direction: row !important; }
+      .md\:hidden { display: none !important; }
+      .hidden.md\:block { display: block !important; }
+      .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+      .md\:mb-20 { margin-bottom: 5rem !important; }
+      .md\:py-16 { padding-top: 4rem !important; padding-bottom: 4rem !important; }
+      .bg-clip-text.text-transparent {
+        -webkit-background-clip: initial !important;
+        background-clip: initial !important;
+        color: #2563EB !important;
+        -webkit-text-fill-color: #2563EB !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-ads-bg text-slate-600 antialiased leading-relaxed border-t-4 border-ads-accent">
+  <div class="no-print max-w-3xl mx-auto px-5 pt-2 flex justify-end">
+    <button onclick="window.print()" class="flex items-center gap-1.5 text-xs text-ads-dim hover:text-ads-accent transition-colors cursor-pointer">
+      <i data-lucide="download" class="w-3.5 h-3.5"></i>
+      PDF
+    </button>
+  </div>
+  <main class="max-w-3xl mx-auto px-5 py-10 md:py-16">
+
+<!-- HERO -->
+<div class="text-center mb-8 md:mb-10">
+  <div class="inline-flex items-center gap-2 bg-ads-accent/10 text-ads-accent-light px-4 py-1.5 rounded-full text-sm font-medium mb-6">
+    <i data-lucide="database" class="w-4 h-4"></i>
+    開発ツール
+  </div>
+  <h1 class="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-6">
+    欧州CO₂シミュレーター<br>
+    <span class="text-ads-accent-light">データ保存</span>の全体像
+  </h1>
+  <p class="text-lg text-ads-muted max-w-xl mx-auto leading-relaxed">
+    2026-05 の旧合意から 2026-06 の現行合意へ。保存形式の違いを中心に解説します。
+  </p>
+</div>
+
+<!-- ONE-PAGE SUMMARY -->
+<div class="bg-ads-surface border border-ads-border rounded-2xl p-6 md:p-10 mb-6">
+  <div class="text-center mb-8">
+    <p class="text-xl md:text-2xl font-black text-slate-900 mb-2">
+      永続化の正は <span class="text-ads-accent-light">Neon PostgreSQL</span> だけ
+    </p>
+    <p class="text-sm text-ads-muted">
+      Git にはコードと雛形、編集中はブラウザメモリ。localStorage / JSON は v1 では使わない
+    </p>
+    <p class="text-xs text-ads-dim mt-2">出典: eu-co2-simulator-grill-decisions.md §17（2026-06-11 グリル合意）</p>
+  </div>
+
+  <!-- PostgreSQL とは（サマリー内） -->
+  <div class="border border-ads-accent/20 rounded-xl p-5 md:p-6 mb-8 bg-white">
+    <div class="flex items-center gap-2 mb-4">
+      <i data-lucide="help-circle" class="w-5 h-5 text-ads-accent-light"></i>
+      <h3 class="text-base font-bold text-slate-900">PostgreSQL とは？ なぜ今回これを使う？</h3>
+    </div>
+
+    <p class="text-sm text-ads-muted leading-relaxed mb-4">
+      <strong class="text-slate-900">PostgreSQL</strong>（ポストグレスキューエル）は、データを<strong class="text-slate-800">行と列の表（テーブル）</strong>で整理して保存・検索する<strong class="text-slate-800">データベース（DB）</strong>ソフトウェアです。Excel の表に近いイメージですが、アプリ専用の金庫のように、大量データの一覧・更新・削除を安全に扱えます。
+    </p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+      <div class="bg-ads-surface border border-ads-border rounded-lg p-4">
+        <p class="text-xs font-bold text-slate-900 mb-2 flex items-center gap-1.5">
+          <i data-lucide="database" class="w-3.5 h-3.5 text-ads-accent-light"></i>
+          PostgreSQL
+        </p>
+        <p class="text-xs text-ads-muted leading-relaxed">表形式の<strong class="text-slate-800">リレーショナル DB</strong>（表同士を関連でつなげる方式）。SQL という言語で「保存して」「条件で探して」と指示する。</p>
+      </div>
+      <div class="bg-emerald-500/5 border border-emerald-500/15 rounded-lg p-4">
+        <p class="text-xs font-bold text-slate-900 mb-2 flex items-center gap-1.5">
+          <i data-lucide="cloud" class="w-3.5 h-3.5 text-emerald-600"></i>
+          Neon
+        </p>
+        <p class="text-xs text-ads-muted leading-relaxed">PostgreSQL を<strong class="text-slate-800">クラウド上</strong>で借りるサービス。Vercel 上のアプリが <code class="bg-white px-1 rounded border border-ads-border/50">DATABASE_URL</code> 経由で接続する。</p>
+      </div>
+    </div>
+
+    <p class="text-xs font-bold text-slate-900 mb-2">このツールで PostgreSQL を「永続化の正」にした理由</p>
+    <ul class="text-xs text-ads-muted space-y-2 mb-4">
+      <li class="flex gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5"></i><span><strong class="text-slate-800">Vercel 公開</strong> — ブラウザ内（localStorage）だけでは端末を替えても同じデータが見えにくい</span></li>
+      <li class="flex gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5"></i><span><strong class="text-slate-800">名前付きシナリオを複数</strong> — 一覧・上書き・別名保存・削除を表で管理しやすい</span></li>
+      <li class="flex gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5"></i><span><strong class="text-slate-800">保存時に 3 年分の計算結果</strong> — サーバー側 DB へまとめて書き込める</span></li>
+      <li class="flex gap-2"><i data-lucide="check" class="w-3.5 h-3.5 text-emerald-600 flex-shrink-0 mt-0.5"></i><span><strong class="text-slate-800">機密データ</strong> — 台数・CO₂ は Git に入れず DB に預ける（Basic 認証付き）</span></li>
+    </ul>
+
+    <div class="flex items-start gap-2 bg-ads-surface border border-ads-border rounded-lg px-4 py-3">
+      <i data-lucide="lightbulb" class="w-4 h-4 text-ads-accent-light flex-shrink-0 mt-0.5"></i>
+      <p class="text-xs text-ads-muted leading-relaxed">
+        JSON ファイルは<strong class="text-slate-800">データの書き方（形式）</strong>、PostgreSQL は<strong class="text-slate-800">データの保管・検索の仕組み</strong>。旧合意の localStorage / JSON は v1 では使わず、ユーザーが「保存」した内容だけを Neon に残します。
+      </p>
+    </div>
+  </div>
+
+  <!-- 3-layer architecture -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+    <div class="bg-slate-100 border border-ads-border rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="folder-git-2" class="w-5 h-5 text-slate-600"></i>
+        <span class="font-bold text-slate-900 text-sm">Git リポジトリ</span>
+      </div>
+      <p class="text-xs text-ads-muted mb-3">デプロイに含まれる静的資産。ユーザーが保存した機密データは入れない。</p>
+      <ul class="text-xs space-y-1 text-slate-700">
+        <li>db/schema.sql</li>
+        <li>lib/defaults.ts（雛形の正）</li>
+        <li>lib/constants.ts</li>
+        <li class="text-ads-dim border-t border-ads-border/50 pt-2 mt-2">db/seed.sql（dev のみ）</li>
+      </ul>
+    </div>
+
+    <div class="bg-ads-accent/5 border-2 border-ads-accent/25 rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="server" class="w-5 h-5 text-ads-accent-light"></i>
+        <span class="font-bold text-ads-accent-light text-sm">Neon PostgreSQL</span>
+      </div>
+      <p class="text-xs text-ads-muted mb-3">クラウド上のデータベース。名前付きシナリオと計算結果が残る。</p>
+      <ul class="text-xs space-y-1 text-slate-700">
+        <li class="font-semibold text-ads-accent-light">scenarios</li>
+        <li class="pl-3">portfolio_rows</li>
+        <li class="pl-3">regulation_params</li>
+        <li class="pl-3">weight_coefficients</li>
+        <li class="pl-3">scenario_results ×3年</li>
+      </ul>
+    </div>
+
+    <div class="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="monitor" class="w-5 h-5 text-amber-600"></i>
+        <span class="font-bold text-slate-900 text-sm">ブラウザメモリ</span>
+      </div>
+      <p class="text-xs text-ads-muted mb-3">編集中だけ。リロードで消える。明示「保存」まで DB に書かない。</p>
+      <div class="text-xs bg-white border border-ads-border rounded-lg px-3 py-2 text-slate-700 font-mono">SimulatorState</div>
+    </div>
+  </div>
+
+  <!-- Arrow flow -->
+  <div class="flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6 mb-6">
+    <div class="text-xs text-ads-muted">defaults.ts → 画面表示</div>
+    <i data-lucide="arrow-right" class="w-4 h-4 text-ads-dim hidden md:block"></i>
+    <i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim md:hidden"></i>
+    <div class="text-xs font-semibold text-ads-accent-light bg-ads-accent/10 border border-ads-accent/20 rounded-full px-4 py-1.5">明示的「保存」→ Neon</div>
+  </div>
+
+  <div class="flex flex-wrap justify-center gap-2">
+    <div class="flex items-center gap-1.5 bg-white border border-ads-border rounded-full px-3 py-1 text-xs">Vercel 公開</div>
+    <div class="flex items-center gap-1.5 bg-white border border-ads-border rounded-full px-3 py-1 text-xs">Basic 認証</div>
+    <div class="flex items-center gap-1.5 bg-white border border-ads-border rounded-full px-3 py-1 text-xs">名前付きシナリオ複数</div>
+    <div class="flex items-center gap-1.5 bg-white border border-ads-border rounded-full px-3 py-1 text-xs">自動保存なし</div>
+  </div>
+</div>
+
+<p class="text-center text-ads-muted mb-16 md:mb-20">まず現行方針の一枚絵を示し、そのあと旧合意との違いを詳しく見ていきます。</p>
+
+
+<!-- SECTION 0: Old vs New (detailed) -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-8">
+    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-slate-500/10 flex-shrink-0">
+      <i data-lucide="history" class="w-5 h-5 text-slate-600"></i>
+    </div>
+    <h2 class="text-xl md:text-2xl font-bold text-slate-900">旧合意と現行合意 — 保存形式の違い</h2>
+  </div>
+
+  <p class="mb-6 leading-relaxed">
+    このツールの「データをどこに残すか」は、<strong class="text-slate-900">2026-06-11 のグリル（§17）で方針が更新</strong>されました。旧合意（2026-05）は撤回済みですが、設計の背景を理解するために両方を並べて説明します。
+  </p>
+
+  <!-- Side-by-side summary cards -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
+    <div class="bg-slate-100 border border-ads-border rounded-xl p-6">
+      <div class="inline-flex items-center gap-1.5 bg-slate-500/10 text-slate-600 px-3 py-1 rounded-full text-xs font-bold mb-4">
+        <i data-lucide="archive" class="w-3.5 h-3.5"></i>
+        旧合意（2026-05）— 撤回
+      </div>
+      <p class="text-sm font-bold text-slate-900 mb-3">個人 PC のブラウザ内 + JSON ファイル</p>
+      <ul class="text-sm space-y-2 text-ads-muted">
+        <li class="flex gap-2"><i data-lucide="monitor" class="w-4 h-4 flex-shrink-0 mt-0.5"></i><span>実行: 自分の PC で <code class="text-xs bg-white px-1 rounded border">npm run dev</code> のみ</span></li>
+        <li class="flex gap-2"><i data-lucide="hard-drive" class="w-4 h-4 flex-shrink-0 mt-0.5"></i><span>永続化: <strong class="text-slate-800">localStorage</strong> 自動保存</span></li>
+        <li class="flex gap-2"><i data-lucide="file-json" class="w-4 h-4 flex-shrink-0 mt-0.5"></i><span>入出力: <strong class="text-slate-800">JSON</strong> エクスポート／インポート</span></li>
+        <li class="flex gap-2"><i data-lucide="cloud-off" class="w-4 h-4 flex-shrink-0 mt-0.5"></i><span>クラウド DB なし・Vercel 公開なし</span></li>
+      </ul>
+    </div>
+    <div class="bg-ads-accent/5 border-2 border-ads-accent/25 rounded-xl p-6">
+      <div class="inline-flex items-center gap-1.5 bg-ads-accent/10 text-ads-accent-light px-3 py-1 rounded-full text-xs font-bold mb-4">
+        <i data-lucide="check" class="w-3.5 h-3.5"></i>
+        現行合意（2026-06 §17）
+      </div>
+      <p class="text-sm font-bold text-slate-900 mb-3">Neon PostgreSQL（クラウド DB）のみ</p>
+      <ul class="text-sm space-y-2 text-ads-muted">
+        <li class="flex gap-2"><i data-lucide="globe" class="w-4 h-4 flex-shrink-0 mt-0.5"></i><span>実行: <strong class="text-slate-800">Vercel + Neon</strong> で公開</span></li>
+        <li class="flex gap-2"><i data-lucide="server" class="w-4 h-4 flex-shrink-0 mt-0.5"></i><span>永続化: <strong class="text-slate-800">PostgreSQL</strong> のみ（明示「保存」）</span></li>
+        <li class="flex gap-2"><i data-lucide="ban" class="w-4 h-4 flex-shrink-0 mt-0.5"></i><span>localStorage / JSON は v1 対象外</span></li>
+        <li class="flex gap-2"><i data-lucide="lock" class="w-4 h-4 flex-shrink-0 mt-0.5"></i><span>Basic 認証・名前付きシナリオ複数</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Comparison table -->
+  <h3 class="text-lg font-bold text-slate-900 mb-4">一覧で比べる</h3>
+  <div class="overflow-x-auto mb-10">
+    <table class="w-full text-sm border border-ads-border rounded-xl overflow-hidden">
+      <thead class="bg-ads-surface">
+        <tr>
+          <th class="text-left px-4 py-3 font-bold text-slate-900 border-b border-ads-border">観点</th>
+          <th class="text-left px-4 py-3 font-bold text-slate-600 border-b border-ads-border">旧（2026-05）</th>
+          <th class="text-left px-4 py-3 font-bold text-ads-accent-light border-b border-ads-border">現行（§17）</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ads-border">
+        <tr>
+          <td class="px-4 py-3 font-medium text-slate-900">実行環境</td>
+          <td class="px-4 py-3 text-ads-muted">自分の PC のみ</td>
+          <td class="px-4 py-3">Vercel 公開 + Neon DB</td>
+        </tr>
+        <tr class="bg-ads-surface/50">
+          <td class="px-4 py-3 font-medium text-slate-900">永続化の正</td>
+          <td class="px-4 py-3 text-ads-muted">localStorage（ブラウザ内）</td>
+          <td class="px-4 py-3 font-medium text-ads-accent-light">PostgreSQL（Neon）</td>
+        </tr>
+        <tr>
+          <td class="px-4 py-3 font-medium text-slate-900">ファイル入出力</td>
+          <td class="px-4 py-3 text-ads-muted">JSON エクスポート／インポート</td>
+          <td class="px-4 py-3 text-ads-muted">v1 未実装</td>
+        </tr>
+        <tr class="bg-ads-surface/50">
+          <td class="px-4 py-3 font-medium text-slate-900">保存のタイミング</td>
+          <td class="px-4 py-3 text-ads-muted">編集のたび自動（localStorage 想定）</td>
+          <td class="px-4 py-3">明示的「保存」ボタンのみ</td>
+        </tr>
+        <tr>
+          <td class="px-4 py-3 font-medium text-slate-900">保存単位</td>
+          <td class="px-4 py-3 text-ads-muted">1 ブラウザ内の作業状態 + JSON 1 ファイル</td>
+          <td class="px-4 py-3">名前付きシナリオ（DB 上で複数）</td>
+        </tr>
+        <tr class="bg-ads-surface/50">
+          <td class="px-4 py-3 font-medium text-slate-900">計算結果の保存</td>
+          <td class="px-4 py-3 text-ads-muted">未定義（state 内のみ想定）</td>
+          <td class="px-4 py-3">保存時に 3 年分を scenario_results へ</td>
+        </tr>
+        <tr>
+          <td class="px-4 py-3 font-medium text-slate-900">PC を替えたとき</td>
+          <td class="px-4 py-3 text-ads-muted">JSON を持ち運べば可能</td>
+          <td class="px-4 py-3">同じ URL にアクセスすれば DB から復元</td>
+        </tr>
+        <tr class="bg-ads-surface/50">
+          <td class="px-4 py-3 font-medium text-slate-900">アクセス保護</td>
+          <td class="px-4 py-3 text-ads-muted">不要（ローカルのみ）</td>
+          <td class="px-4 py-3">Basic 認証</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Old architecture diagram -->
+  <h3 class="text-lg font-bold text-slate-900 mb-4">旧合意のデータの流れ</h3>
+  <p class="text-sm text-ads-muted mb-4">
+    <strong class="text-slate-800">localStorage</strong>（ローカルストレージ）は、ブラウザが PC 内に確保する小さな保存領域です。サイトごとにキーと値を覚えておき、次回アクセス時に読み戻せます。
+  </p>
+  <div class="bg-ads-surface border border-ads-border rounded-xl p-6 md:p-8 mb-8">
+    <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
+      <div class="w-full md:w-40 text-center p-4 bg-white border border-ads-border rounded-xl">
+        <i data-lucide="laptop" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+        <div class="text-xs font-bold text-slate-900">あなたの PC</div>
+        <div class="text-[11px] text-ads-muted mt-1">npm run dev</div>
+      </div>
+      <div class="flex flex-col items-center">
+        <i data-lucide="arrow-right" class="w-5 h-5 text-ads-dim hidden md:block"></i>
+        <i data-lucide="arrow-down" class="w-5 h-5 text-ads-dim md:hidden"></i>
+        <span class="text-[10px] text-ads-muted mt-1">編集</span>
+      </div>
+      <div class="w-full md:w-44 text-center p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+        <i data-lucide="monitor" class="w-8 h-8 text-amber-600 mx-auto mb-2"></i>
+        <div class="text-xs font-bold text-slate-900">ブラウザ</div>
+        <div class="text-[11px] text-ads-muted mt-1">React state + localStorage</div>
+      </div>
+      <div class="flex flex-col items-center">
+        <i data-lucide="arrow-right" class="w-5 h-5 text-ads-dim hidden md:block"></i>
+        <i data-lucide="arrow-down" class="w-5 h-5 text-ads-dim md:hidden"></i>
+        <span class="text-[10px] text-ads-muted mt-1">任意</span>
+      </div>
+      <div class="w-full md:w-44 text-center p-4 bg-slate-100 border border-ads-border rounded-xl">
+        <i data-lucide="file-json" class="w-8 h-8 text-slate-600 mx-auto mb-2"></i>
+        <div class="text-xs font-bold text-slate-900">JSON ファイル</div>
+        <div class="text-[11px] text-ads-muted mt-1">USB・メールで共有</div>
+      </div>
+    </div>
+    <div class="mt-6 bg-white border border-ads-border rounded-lg p-4 font-mono text-[11px] text-slate-600 leading-relaxed">
+      <span class="text-ads-dim">// PersistedSimulatorSnapshot（旧計画の型）</span><br>
+      { "version": 1, "savedAt": "...", "state": { ... } }
+    </div>
+    <p class="text-xs text-ads-dim mt-4 text-center">データは PC・ブラウザの中に閉じる。サーバー DB は使わない。</p>
+  </div>
+
+  <!-- New architecture diagram -->
+  <h3 class="text-lg font-bold text-slate-900 mb-4">現行合意のデータの流れ</h3>
+  <p class="text-sm text-ads-muted mb-4">
+    <strong class="text-slate-800">PostgreSQL</strong> は表形式でデータを保管するデータベース。<strong class="text-slate-800">Neon</strong> はそれをクラウド上で提供するサービスです。Vercel 上のアプリがネット経由で読み書きします。
+  </p>
+  <div class="bg-ads-accent/5 border-2 border-ads-accent/20 rounded-xl p-6 md:p-8 mb-8">
+    <div class="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-4">
+      <div class="w-full md:w-36 text-center p-4 bg-white border border-ads-border rounded-xl">
+        <i data-lucide="globe" class="w-8 h-8 text-ads-accent-light mx-auto mb-2"></i>
+        <div class="text-xs font-bold text-slate-900">ブラウザ</div>
+        <div class="text-[11px] text-ads-muted mt-1">編集中はメモリのみ</div>
+      </div>
+      <div class="flex flex-col items-center">
+        <span class="text-[10px] font-semibold text-ads-accent-light">HTTPS</span>
+        <i data-lucide="arrow-right" class="w-5 h-5 text-ads-accent hidden md:block"></i>
+        <i data-lucide="arrow-down" class="w-5 h-5 text-ads-accent md:hidden"></i>
+      </div>
+      <div class="w-full md:w-36 text-center p-4 bg-white border border-ads-accent/30 rounded-xl">
+        <i data-lucide="cloud" class="w-8 h-8 text-ads-accent-light mx-auto mb-2"></i>
+        <div class="text-xs font-bold text-slate-900">Vercel</div>
+        <div class="text-[11px] text-ads-muted mt-1">Server Actions</div>
+      </div>
+      <div class="flex flex-col items-center">
+        <span class="text-[10px] text-ads-accent-light">SQL</span>
+        <i data-lucide="arrow-right" class="w-5 h-5 text-ads-accent hidden md:block"></i>
+        <i data-lucide="arrow-down" class="w-5 h-5 text-ads-accent md:hidden"></i>
+      </div>
+      <div class="w-full md:w-40 text-center p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+        <i data-lucide="database" class="w-8 h-8 text-emerald-600 mx-auto mb-2"></i>
+        <div class="text-xs font-bold text-slate-900">Neon PostgreSQL</div>
+        <div class="text-[11px] text-ads-muted mt-1">scenarios 以下</div>
+      </div>
+    </div>
+    <p class="text-xs text-ads-dim mt-4 text-center">「保存」を押したときだけ DB に書き込む。JSON ファイルは v1 では使わない。</p>
+  </div>
+
+  <!-- JSON vs PostgreSQL in project context -->
+  <h3 class="text-lg font-bold text-slate-900 mb-4">JSON と PostgreSQL — このプロジェクトでの意味</h3>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+    <div class="border border-ads-border rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="file-json" class="w-5 h-5 text-slate-600"></i>
+        <span class="font-bold text-slate-900">JSON（旧合意で想定）</span>
+      </div>
+      <p class="text-sm text-ads-muted leading-relaxed mb-3">
+        データの<strong class="text-slate-800">書き方（テキスト形式）</strong>。1 ファイルに画面状態をまとめ、コピーして別 PC へ渡す用途向き。
+      </p>
+      <p class="text-xs text-ads-dim">旧: エクスポート／インポート用　／　現行: v1 未実装</p>
+    </div>
+    <div class="border-2 border-ads-accent/20 rounded-xl p-5 bg-ads-accent/5">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="database" class="w-5 h-5 text-ads-accent-light"></i>
+        <span class="font-bold text-ads-accent-light">PostgreSQL（現行の正）</span>
+      </div>
+      <p class="text-sm text-ads-muted leading-relaxed mb-3">
+        データの<strong class="text-slate-800">保管・検索の仕組み</strong>。複数シナリオの一覧、保存時の 3 年分計算結果など、表で管理。
+      </p>
+      <p class="text-xs text-ads-accent-light">現行: 永続化はここだけ</p>
+    </div>
+  </div>
+
+  <!-- Why changed -->
+  <div class="bg-ads-accent/5 border border-ads-accent/20 rounded-xl p-5 mb-4">
+    <div class="flex items-start gap-3">
+      <i data-lucide="help-circle" class="w-5 h-5 text-ads-accent-light flex-shrink-0 mt-0.5"></i>
+      <div>
+        <p class="font-bold text-ads-accent-light mb-2">なぜ方針が変わったか</p>
+        <ul class="text-sm text-ads-muted space-y-2 leading-relaxed">
+          <li><strong class="text-slate-800">実行環境</strong>が「個人 PC のみ」から「Vercel 公開」へ → ブラウザ内（localStorage）だけでは端末を替えたときにデータが追従しにくい</li>
+          <li><strong class="text-slate-800">名前付きシナリオを複数</strong>残したい → DB の方が一覧・上書き・別名保存・削除を整理しやすい</li>
+          <li><strong class="text-slate-800">保存時の計算結果（3 年分）</strong>も残す → サーバー側 DB に UPSERT する設計が自然</li>
+          <li>機密データを<strong class="text-slate-800">Basic 認証</strong>付きクラウドで扱う前提 → 共有 DB プール + 簡易保護</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <p class="text-xs text-ads-dim">出典: eu-co2-simulator-grill-decisions.md 問い2・9（旧）→ §17（現行）</p>
+</section>
+
+
+<p class="text-center text-ads-muted mb-16 md:mb-20">以下は<strong class="text-slate-800">現行合意（§17）</strong>の詳細です。</p>
+
+
+<!-- SECTION 1: 4 places -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-8">
+    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-blue-500/10 flex-shrink-0">
+      <i data-lucide="layers" class="w-5 h-5 text-blue-600"></i>
+    </div>
+    <h2 class="text-xl md:text-2xl font-bold text-slate-900">4つの「置き場所」</h2>
+  </div>
+
+  <p class="mb-6 leading-relaxed">
+    <strong class="text-slate-900">Git リポジトリ</strong>（ギット・レポジトリ）は、ソースコードを保管する場所です。<strong class="text-slate-900">PostgreSQL</strong>（ポストグレスキューエル）は、表形式でデータを永続保存するデータベースです。<strong class="text-slate-900">Neon</strong> は、その PostgreSQL をクラウド上で使えるサービス名です。
+  </p>
+
+  <div class="overflow-x-auto mb-8">
+    <table class="w-full text-sm border border-ads-border rounded-xl overflow-hidden">
+      <thead class="bg-ads-surface">
+        <tr>
+          <th class="text-left px-4 py-3 font-bold text-slate-900 border-b border-ads-border">置き場所</th>
+          <th class="text-left px-4 py-3 font-bold text-slate-900 border-b border-ads-border">役割</th>
+          <th class="text-left px-4 py-3 font-bold text-slate-900 border-b border-ads-border">中身の例</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-ads-border">
+        <tr><td class="px-4 py-3 font-medium text-slate-900">Git</td><td class="px-4 py-3">コード・設計図</td><td class="px-4 py-3 text-xs font-mono">schema.sql, defaults.ts, constants.ts</td></tr>
+        <tr class="bg-ads-surface/50"><td class="px-4 py-3 font-medium text-slate-900">Git（dev のみ）</td><td class="px-4 py-3">DB リセット用サンプル</td><td class="px-4 py-3 text-xs font-mono">seed.sql</td></tr>
+        <tr><td class="px-4 py-3 font-medium text-ads-accent-light">Neon DB</td><td class="px-4 py-3">ユーザー保存データ</td><td class="px-4 py-3">名前付きシナリオ・計算結果</td></tr>
+        <tr class="bg-ads-surface/50"><td class="px-4 py-3 font-medium text-amber-700">ブラウザメモリ</td><td class="px-4 py-3">編集中の一時状態</td><td class="px-4 py-3">SimulatorState</td></tr>
+        <tr><td class="px-4 py-3 font-medium text-red-700">Git に入れない</td><td class="px-4 py-3">機密</td><td class="px-4 py-3">台数・CO₂・保存済みシナリオ</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="bg-ads-accent/5 border border-ads-accent/20 rounded-xl p-5">
+    <div class="flex items-start gap-3">
+      <i data-lucide="lightbulb" class="w-5 h-5 text-ads-accent-light flex-shrink-0 mt-0.5"></i>
+      <div>
+        <p class="font-bold text-ads-accent-light mb-1">たとえ話：引き出しと金庫</p>
+        <p class="text-ads-muted leading-relaxed text-sm">
+          Git は<strong class="text-slate-800">設計図と型紙が入った引き出し</strong>（誰が見ても同じ）。Neon は<strong class="text-slate-800">あなたが書き込んだノートが入る金庫</strong>（保存ボタンを押したときだけ中身が増える）。編集中のメモは<strong class="text-slate-800">机の上</strong>（ブラウザメモリ）に置いているイメージです。
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 2: scenarios tree -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-8">
+    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-500/10 flex-shrink-0">
+      <i data-lucide="git-branch" class="w-5 h-5 text-emerald-600"></i>
+    </div>
+    <h2 class="text-xl md:text-2xl font-bold text-slate-900">DB の中身：スナップショット型</h2>
+  </div>
+
+  <p class="mb-6 leading-relaxed">
+    <strong class="text-slate-900">スナップショット型</strong>（スナップショット＝その瞬間の写真）とは、「保存ボタンを押したときの画面状態を一式として丸ごと残す」設計です。中心は <code class="text-xs bg-ads-surface px-1.5 py-0.5 rounded border border-ads-border">scenarios</code> テーブル1行＝名前付きシナリオ1件です。
+  </p>
+
+  <div class="bg-slate-900 rounded-xl p-6 md:p-8 mb-6 font-mono text-xs md:text-sm text-slate-300 leading-relaxed">
+    <div class="text-emerald-400 font-bold mb-2">scenarios（シナリオの入れ物）</div>
+    <div class="pl-4 border-l-2 border-slate-700 space-y-1">
+      <div><span class="text-blue-400">├─</span> portfolio_rows <span class="text-slate-500">… Pane1 車種行（2025表 / 2026表）</span></div>
+      <div><span class="text-blue-400">├─</span> regulation_params <span class="text-slate-500">… Pane2 規制（2025/2027/2030）</span></div>
+      <div><span class="text-blue-400">├─</span> weight_coefficients <span class="text-slate-500">… Pane2 詳細 重量補正 a, M₀</span></div>
+      <div><span class="text-blue-400">├─</span> scenario_results <span class="text-slate-500">… Pane3 計算結果（保存時3年分）</span></div>
+      <div><span class="text-slate-500">└─</span> ai_analyses <span class="text-slate-600">… v1 未使用</span></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 3: Pane mapping -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-8">
+    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-purple-500/10 flex-shrink-0">
+      <i data-lucide="layout-grid" class="w-5 h-5 text-purple-600"></i>
+    </div>
+    <h2 class="text-xl md:text-2xl font-bold text-slate-900">画面（Pane）と DB テーブルの対応</h2>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+    <div class="border border-ads-border rounded-xl p-5 bg-ads-surface">
+      <div class="text-xs font-bold text-ads-accent-light mb-1">Pane 1</div>
+      <div class="font-bold text-slate-900 mb-2">portfolio_rows</div>
+      <p class="text-sm text-ads-muted">2025 実績表 / 2026 予測表を base_year で区別。車種名・動力方式・台数・WLTP・重量。</p>
+    </div>
+    <div class="border border-ads-border rounded-xl p-5 bg-ads-surface">
+      <div class="text-xs font-bold text-ads-accent-light mb-1">Pane 2</div>
+      <div class="font-bold text-slate-900 mb-2">regulation_params + weight_coefficients</div>
+      <p class="text-sm text-ads-muted">規制パラメータは 3 年分。重量補正係数はシナリオと 1:1。</p>
+    </div>
+    <div class="border border-ads-border rounded-xl p-5 bg-ads-surface">
+      <div class="text-xs font-bold text-ads-accent-light mb-1">Pane 3</div>
+      <div class="font-bold text-slate-900 mb-2">scenario_results</div>
+      <p class="text-sm text-ads-muted">保存時に 2025 / 2027 / 2030 をサーバー計算。達成率・罰金など。</p>
+    </div>
+    <div class="border border-ads-border rounded-xl p-5 bg-ads-surface">
+      <div class="text-xs font-bold text-ads-dim mb-1">Pane 4</div>
+      <div class="font-bold text-slate-900 mb-2">（DB に保存しない）</div>
+      <p class="text-sm text-ads-muted">AI 文案はボタン押下のたびに再生成。ai_analyses テーブルは v1 未使用。</p>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 4: Save flow -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-8">
+    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-cyan-500/10 flex-shrink-0">
+      <i data-lucide="route" class="w-5 h-5 text-cyan-600"></i>
+    </div>
+    <h2 class="text-xl md:text-2xl font-bold text-slate-900">保存の流れ（5ステップ）</h2>
+  </div>
+
+  <div class="space-y-4">
+    <div class="flex gap-4 items-start">
+      <div class="w-8 h-8 rounded-full bg-ads-accent text-white flex items-center justify-center text-sm font-bold flex-shrink-0">1</div>
+      <div><p class="font-bold text-slate-900">アプリを開く</p><p class="text-sm text-ads-muted">DB が空なら lib/defaults.ts のサンプルが画面に出る（Neon にはまだ何もない）。</p></div>
+    </div>
+    <div class="flex gap-4 items-start">
+      <div class="w-8 h-8 rounded-full bg-ads-accent text-white flex items-center justify-center text-sm font-bold flex-shrink-0">2</div>
+      <div><p class="font-bold text-slate-900">編集する</p><p class="text-sm text-ads-muted">変更はブラウザメモリのみ。自動保存はしない。</p></div>
+    </div>
+    <div class="flex gap-4 items-start">
+      <div class="w-8 h-8 rounded-full bg-ads-accent text-white flex items-center justify-center text-sm font-bold flex-shrink-0">3</div>
+      <div><p class="font-bold text-slate-900">「保存」または「別名で保存」</p><p class="text-sm text-ads-muted">Server Actions が Neon に書き込み。3 年分を計算して scenario_results に UPSERT（アップサート＝なければ追加、あれば更新）。</p></div>
+    </div>
+    <div class="flex gap-4 items-start">
+      <div class="w-8 h-8 rounded-full bg-ads-accent text-white flex items-center justify-center text-sm font-bold flex-shrink-0">4</div>
+      <div class="flex-1 min-w-0">
+        <p class="font-bold text-slate-900">シナリオを選び直す</p>
+        <p class="text-sm text-ads-muted mb-4">一覧から読込 → DB から SimulatorState と保存済み計算結果を復元（Phase 2 で実装予定）。</p>
+
+        <!-- 保存データ呼び出しイメージ図 -->
+        <div class="bg-ads-surface border border-ads-border rounded-xl p-5 md:p-6">
+          <p class="text-xs font-bold text-slate-900 mb-4 text-center">保存データを呼び出すときの流れ</p>
+
+          <!-- User → UI -->
+          <div class="flex flex-col md:flex-row items-stretch md:items-center justify-center gap-3 md:gap-2 mb-4">
+            <div class="flex-1 max-w-[9rem] mx-auto md:mx-0 text-center p-3 bg-white border border-ads-border rounded-xl">
+              <i data-lucide="user" class="w-6 h-6 text-slate-600 mx-auto mb-1"></i>
+              <div class="text-[11px] font-bold text-slate-900">ユーザー</div>
+              <div class="text-[10px] text-ads-muted mt-1">一覧でシナリオを選択</div>
+            </div>
+            <div class="flex justify-center py-1 md:py-0 md:w-10">
+              <i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim md:hidden"></i>
+              <i data-lucide="arrow-right" class="w-4 h-4 text-ads-dim hidden md:block"></i>
+            </div>
+            <div class="flex-1 max-w-[9rem] mx-auto md:mx-0 text-center p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+              <i data-lucide="layout-list" class="w-6 h-6 text-amber-600 mx-auto mb-1"></i>
+              <div class="text-[11px] font-bold text-slate-900">ブラウザ UI</div>
+              <div class="text-[10px] text-ads-muted mt-1">loadScenario(id)</div>
+            </div>
+            <div class="flex justify-center py-1 md:py-0 md:w-10">
+              <span class="text-[9px] text-ads-accent-light font-medium hidden md:block">HTTPS</span>
+              <i data-lucide="arrow-down" class="w-4 h-4 text-ads-accent md:hidden"></i>
+              <i data-lucide="arrow-right" class="w-4 h-4 text-ads-accent hidden md:block"></i>
+            </div>
+            <div class="flex-1 max-w-[9rem] mx-auto md:mx-0 text-center p-3 bg-white border border-ads-accent/30 rounded-xl">
+              <i data-lucide="cloud" class="w-6 h-6 text-ads-accent-light mx-auto mb-1"></i>
+              <div class="text-[11px] font-bold text-slate-900">Vercel</div>
+              <div class="text-[10px] text-ads-muted mt-1">Server Actions</div>
+            </div>
+            <div class="flex justify-center py-1 md:py-0 md:w-10">
+              <span class="text-[9px] text-emerald-600 font-medium hidden md:block">SELECT</span>
+              <i data-lucide="arrow-down" class="w-4 h-4 text-emerald-600 md:hidden"></i>
+              <i data-lucide="arrow-right" class="w-4 h-4 text-emerald-600 hidden md:block"></i>
+            </div>
+            <div class="flex-1 max-w-[9rem] mx-auto md:mx-0 text-center p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+              <i data-lucide="database" class="w-6 h-6 text-emerald-600 mx-auto mb-1"></i>
+              <div class="text-[11px] font-bold text-slate-900">Neon</div>
+              <div class="text-[10px] text-ads-muted mt-1">5 テーブルを読取</div>
+            </div>
+          </div>
+
+          <!-- DB tables read -->
+          <div class="border-t border-ads-border/50 pt-4 mb-4">
+            <p class="text-[10px] text-ads-dim font-medium mb-2 text-center">Neon から SELECT する表（同じ scenario_id）</p>
+            <div class="flex flex-wrap justify-center gap-1.5">
+              <span class="text-[10px] bg-white border border-ads-border rounded-full px-2.5 py-0.5">scenarios</span>
+              <span class="text-[10px] bg-white border border-ads-border rounded-full px-2.5 py-0.5">portfolio_rows</span>
+              <span class="text-[10px] bg-white border border-ads-border rounded-full px-2.5 py-0.5">regulation_params</span>
+              <span class="text-[10px] bg-white border border-ads-border rounded-full px-2.5 py-0.5">weight_coefficients</span>
+              <span class="text-[10px] bg-white border border-ads-border rounded-full px-2.5 py-0.5">scenario_results</span>
+            </div>
+          </div>
+
+          <!-- Return path to UI -->
+          <div class="flex flex-col md:flex-row items-center justify-center gap-2 mb-4">
+            <div class="flex items-center gap-1.5 text-[10px] text-emerald-600 bg-emerald-500/5 border border-emerald-500/15 rounded-full px-3 py-1">
+              <i data-lucide="corner-down-left" class="w-3 h-3"></i>
+              db-types.ts で SimulatorState に変換
+            </div>
+            <i data-lucide="arrow-right" class="w-4 h-4 text-ads-dim hidden md:block"></i>
+            <i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim md:hidden"></i>
+            <div class="flex items-center gap-1.5 text-[10px] text-ads-accent-light bg-ads-accent/5 border border-ads-accent/15 rounded-full px-3 py-1">
+              <i data-lucide="monitor" class="w-3 h-3"></i>
+              Provider の state を更新
+            </div>
+          </div>
+
+          <!-- Pane mapping on restore -->
+          <div class="grid grid-cols-3 gap-2">
+            <div class="text-center p-2 bg-white border border-ads-border rounded-lg">
+              <div class="text-[10px] font-bold text-ads-accent-light">Pane 1・2</div>
+              <div class="text-[10px] text-ads-muted">入力値を復元</div>
+            </div>
+            <div class="text-center p-2 bg-white border border-ads-border rounded-lg">
+              <div class="text-[10px] font-bold text-ads-accent-light">Pane 3</div>
+              <div class="text-[10px] text-ads-muted">保存時の計算結果</div>
+            </div>
+            <div class="text-center p-2 bg-slate-50 border border-ads-border rounded-lg">
+              <div class="text-[10px] font-bold text-ads-dim">Pane 4</div>
+              <div class="text-[10px] text-ads-dim">DB からは読まない</div>
+            </div>
+          </div>
+
+          <p class="text-[10px] text-ads-dim mt-3 text-center">編集を始めると Pane 3 はリアルタイム再計算に切り替わる（保存するまで DB は更新されない）</p>
+        </div>
+      </div>
+    </div>
+    <div class="flex gap-4 items-start">
+      <div class="w-8 h-8 rounded-full bg-ads-accent text-white flex items-center justify-center text-sm font-bold flex-shrink-0">5</div>
+      <div><p class="font-bold text-slate-900">削除</p><p class="text-sm text-ads-muted">scenarios を DELETE → 子テーブルも CASCADE（カスケード＝連鎖）で削除。</p></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- SECTION 5: Save rules -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-8">
+    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-amber-500/10 flex-shrink-0">
+      <i data-lucide="clipboard-list" class="w-5 h-5 text-amber-600"></i>
+    </div>
+    <h2 class="text-xl md:text-2xl font-bold text-slate-900">保存ルール（確定）</h2>
+  </div>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div class="bg-ads-surface border border-ads-border rounded-lg px-4 py-3"><span class="text-xs text-ads-dim">永続化先</span><p class="font-semibold text-slate-900 text-sm">PostgreSQL のみ</p></div>
+    <div class="bg-ads-surface border border-ads-border rounded-lg px-4 py-3"><span class="text-xs text-ads-dim">保存単位</span><p class="font-semibold text-slate-900 text-sm">名前付きシナリオ（複数）</p></div>
+    <div class="bg-ads-surface border border-ads-border rounded-lg px-4 py-3"><span class="text-xs text-ads-dim">書き込み</span><p class="font-semibold text-slate-900 text-sm">明示的「保存」のみ</p></div>
+    <div class="bg-ads-surface border border-ads-border rounded-lg px-4 py-3"><span class="text-xs text-ads-dim">上書き</span><p class="font-semibold text-slate-900 text-sm">保存 ＋ 別名で保存</p></div>
+    <div class="bg-ads-surface border border-ads-border rounded-lg px-4 py-3"><span class="text-xs text-ads-dim">計算結果</span><p class="font-semibold text-slate-900 text-sm">保存時に 3 年分すべて</p></div>
+    <div class="bg-ads-surface border border-ads-border rounded-lg px-4 py-3"><span class="text-xs text-ads-dim">認証</span><p class="font-semibold text-slate-900 text-sm">Basic 認証（共有 DB）</p></div>
+  </div>
+</section>
+
+
+<!-- SECTION 6: defaults vs seed -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-8">
+    <div class="flex items-center gap-3 mb-0">
+      <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-red-500/10 flex-shrink-0">
+        <i data-lucide="alert-triangle" class="w-5 h-5 text-red-600"></i>
+      </div>
+      <h2 class="text-xl md:text-2xl font-bold text-slate-900">defaults.ts と seed.sql の関係</h2>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div class="bg-red-500/5 border border-red-500/20 rounded-xl p-6">
+      <div class="inline-flex items-center gap-1.5 bg-red-500/10 text-red-600 px-3 py-1 rounded-full text-xs font-bold mb-4">
+        <i data-lucide="x-circle" class="w-3.5 h-3.5"></i>
+        誤解
+      </div>
+      <p class="text-sm leading-relaxed">2 ファイルは別々のデータ源で、どちらか一方を直せばよい。</p>
+    </div>
+    <div class="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-6">
+      <div class="inline-flex items-center gap-1.5 bg-emerald-500/10 text-emerald-600 px-3 py-1 rounded-full text-xs font-bold mb-4">
+        <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+        正解
+      </div>
+      <p class="text-sm leading-relaxed"><strong class="text-slate-900">lib/defaults.ts が正</strong>。seed.sql は同じサンプルを SQL で書いた開発用コピー。更新時は defaults を先に直し、seed を手動で揃える。本番 Neon には seed を流さない。</p>
+    </div>
+  </div>
+
+  <p class="text-sm text-ads-muted leading-relaxed">
+    例：「コンパクト（ICE/HEV）12500 台 118 g/km」は defaults.ts と seed.sql の両方に同じ数字で書かれています。これが<strong class="text-slate-800">二重化</strong>（同じ内容が 2 か所にある状態）です。
+  </p>
+</section>
+
+
+<!-- SECTION 7: v1 excluded (merged old items) -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-8">
+    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-slate-500/10 flex-shrink-0">
+      <i data-lucide="ban" class="w-5 h-5 text-slate-600"></i>
+    </div>
+    <h2 class="text-xl md:text-2xl font-bold text-slate-900">現行 v1 で使わないもの（旧合意にあった機能）</h2>
+  </div>
+
+  <p class="mb-6 text-sm text-ads-muted leading-relaxed">
+    以下は<strong class="text-slate-800">2026-05 旧合意では採用予定</strong>だったが、<strong class="text-slate-800">2026-06 現行合意（§17）で v1 対象外</strong>としたものです。
+  </p>
+
+  <ul class="space-y-3 mb-6">
+    <li class="flex items-start gap-2.5 text-sm"><i data-lucide="x" class="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0"></i><span><strong class="text-slate-900">localStorage 自動保存</strong> — 旧: 編集内容をブラウザ内に自動記録。現行: 使わず、明示「保存」で DB へ。</span></li>
+    <li class="flex items-start gap-2.5 text-sm"><i data-lucide="x" class="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0"></i><span><strong class="text-slate-900">JSON エクスポート／インポート</strong> — 旧: ファイルでバックアップ・PC 間移行。現行: v1 未実装（PostgreSQL が正）。</span></li>
+    <li class="flex items-start gap-2.5 text-sm"><i data-lucide="x" class="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0"></i><span><strong class="text-slate-900">ai_analyses</strong> への INSERT — AI 文案は都度再生成</span></li>
+    <li class="flex items-start gap-2.5 text-sm"><i data-lucide="x" class="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0"></i><span><strong class="text-slate-900">ユーザー別ログイン</strong> — v1 は共有 DB プール</span></li>
+  </ul>
+
+  <div class="bg-ads-surface border border-ads-border rounded-xl p-5">
+    <p class="text-xs text-ads-dim font-medium mb-2">Git に入れてはいけない環境変数（.env）</p>
+    <ul class="text-xs font-mono space-y-1 text-slate-700">
+      <li>DATABASE_URL — Neon 接続文字列</li>
+      <li>BASIC_AUTH_* — 認証用（Phase 2）</li>
+      <li>LLM API キー — Pane 4 任意送信</li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- SECTION 9: Glossary -->
+<section class="mb-8">
+  <div class="flex items-center gap-3 mb-8">
+    <div class="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-500/10 flex-shrink-0">
+      <i data-lucide="book-open" class="w-5 h-5 text-indigo-600"></i>
+    </div>
+    <h2 class="text-xl md:text-2xl font-bold text-slate-900">用語ミニ辞典</h2>
+  </div>
+
+  <dl class="space-y-4 text-sm">
+    <div><dt class="font-bold text-slate-900">localStorage（ローカルストレージ）</dt><dd class="text-ads-muted mt-1">ブラウザが PC 内に確保する小さな保存領域。旧合意では自動保存先として想定。現行 v1 では未使用。</dd></div>
+    <div><dt class="font-bold text-slate-900">JSON</dt><dd class="text-ads-muted mt-1">データをテキストで書く形式。旧合意ではファイル入出力用。現行 v1 では未使用。PostgreSQL は別の「保管の仕組み」。</dd></div>
+    <div><dt class="font-bold text-slate-900">Git リポジトリ</dt><dd class="text-ads-muted mt-1">ソースコードをバージョン管理する保管場所。</dd></div>
+    <div><dt class="font-bold text-slate-900">PostgreSQL / Neon</dt><dd class="text-ads-muted mt-1">リレーショナル DB。Neon はクラウド上で PostgreSQL を提供するサービス。</dd></div>
+    <div><dt class="font-bold text-slate-900">シード（seed.sql）</dt><dd class="text-ads-muted mt-1">DB 初期化用のサンプル SQL。開発環境専用。</dd></div>
+    <div><dt class="font-bold text-slate-900">UPSERT</dt><dd class="text-ads-muted mt-1">レコードがなければ INSERT、あれば UPDATE。</dd></div>
+    <div><dt class="font-bold text-slate-900">CASCADE 削除</dt><dd class="text-ads-muted mt-1">親レコード削除時に、紐づく子レコードも自動削除。</dd></div>
+  </dl>
+
+  <p class="text-xs text-ads-dim mt-10 text-center">
+    関連ドキュメント: eu-co2-simulator-grill-decisions.md §17 / eu-co2-simulator-phase2-plan.md<br>
+    公開URL: <a href="https://diagram-co2-data-persistence.surge.sh" class="text-ads-accent-light underline">diagram-co2-data-persistence.surge.sh</a>
+  </p>
+</section>
+
+  </main>
+  <footer class="max-w-3xl mx-auto px-5 pb-10 pt-6 border-t border-ads-border/30">
+    <p class="text-xs text-ads-dim text-center">欧州CO₂規制シナリオ・シミュレーター — データ保存方針図解（2026-06-11 更新: 旧/現行比較）</p>
+  </footer>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>

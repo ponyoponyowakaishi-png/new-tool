@@ -29,8 +29,8 @@
 | 含める | 含めない（次フェーズ） |
 |--------|------------------------|
 | Next.js プロジェクト初期化、`npm run dev` 動作 | `lib/calculations.ts` の本番計算 |
-| 4 Pane の全入力・表示・操作（クライアント state） | localStorage 自動保存 |
-| サンプル初期データ（汎用ラベル＋架空数値） | JSON エクスポート／インポートの実処理 |
+| 4 Pane の全入力・表示・操作（クライアント state） | Neon PostgreSQL への明示保存（Phase 2） |
+| サンプル初期データ（汎用ラベル＋架空数値） | JSON エクスポート／インポート（v1 対象外） |
 | Pane 3：**固定サンプル数値**＋「計算は次フェーズ」注記 | LLM API・本番プロンプト送信 |
 | v1対象外の注意（プール・エコイノベ）Alert | 重量補正の厳密な EU 公式との突合 |
 
@@ -197,8 +197,8 @@ h-screen flex flex-col
 
 - ツール名: 欧州CO₂規制シナリオ・シミュレーター
 - v1 対象外 Alert（プール・エコイノベ）
-- JSON Export/Import: **disabled** + Tooltip 統一文案「JSON 入出力は計算・保存フェーズで有効化」+ `aria-disabled`
-- ヘッダーに `Badge: 保存は次フェーズ`（Could・localStorage 未実装の明示）
+- JSON Export/Import: **disabled** + Tooltip「JSON 入出力は v1 対象外（永続化は PostgreSQL）」+ `aria-disabled`
+- ~~ヘッダーに `Badge: 保存は次フェーズ`~~ → Phase 2 でシナリオ保存 UI に置き換え
 
 ---
 
@@ -277,14 +277,20 @@ docs/
 
 ---
 
-## 9. 次フェーズ（参考・今回は実装しない）
+## 9. 次フェーズ
+
+**→ [eu-co2-simulator-phase2-plan.md](./eu-co2-simulator-phase2-plan.md) を参照**
+
+Phase 2 の要点（2026-06-11 グリル合意）:
 
 1. `lib/calculations.ts`: 合意§7の式 + 重量補正 + 対象年連動
 2. Pane 3 を state + calculations に接続（除算ガード含む）
-3. localStorage + JSON import/export
-4. Pane 4 API Route（`.env.local` 任意送信）
+3. **Neon PostgreSQL** への名前付きシナリオ保存（明示保存・3年分計算結果・上書き/別名/削除）
+4. **Basic 認証** + Vercel デプロイ
+5. ~~localStorage + JSON import/export~~ — **v1 対象外**（§17）
+6. Pane 4 API Route（`.env.local` 任意送信）— AI 文案は DB 非保存
 
-§13の未決（実質排出0、プリセットと重量補正の整合、JSONスキーマ等）は **計算フェーズ前に短いグリル or 定数コメントで確定**。
+§13の未決（実質排出0、プリセットと重量補正の整合等）は **Phase 2 着手前または calculations 実装時に確定**。
 
 ---
 
