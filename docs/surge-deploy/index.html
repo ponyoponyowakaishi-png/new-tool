@@ -301,8 +301,263 @@
     </table>
   </div>
 
+  <!-- Persistence mechanism comparison -->
+  <h3 class="text-lg font-bold text-slate-900 mb-2">永続化の仕組み — 図で比べる</h3>
+  <p class="text-sm text-ads-muted mb-6 leading-relaxed">
+    上の一覧表で「永続化の正」と「保存のタイミング」が違います。ここでは<strong class="text-slate-800">localStorage 自動保存</strong>（旧）と<strong class="text-slate-800">PostgreSQL 明示「保存」</strong>（現行）が、それぞれ<strong class="text-slate-800">いつ・どこに・何を書くか</strong>を、ステップ図で並べます。
+  </p>
+
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+
+    <!-- OLD: localStorage auto-save mechanism -->
+    <div class="bg-slate-100 border border-ads-border rounded-xl p-5 md:p-6">
+      <div class="inline-flex items-center gap-1.5 bg-slate-500/10 text-slate-600 px-3 py-1 rounded-full text-xs font-bold mb-4">
+        <i data-lucide="hard-drive" class="w-3.5 h-3.5"></i>
+        旧: localStorage 自動保存
+      </div>
+
+      <p class="text-xs text-ads-muted mb-4 leading-relaxed">
+        <strong class="text-slate-800">localStorage</strong>（ローカルストレージ）＝ブラウザが PC 内に持つ小さなメモ帳。<strong class="text-slate-800">自動保存</strong>＝「保存」ボタンなしで、編集内容が一定タイミングでそこへ書き込まれる想定（Word の下書き自動保存に近い）。
+      </p>
+
+      <!-- Edit loop -->
+      <p class="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-2">編集中（ループ）</p>
+      <div class="space-y-0 mb-4">
+        <div class="flex gap-3 items-start">
+          <div class="flex flex-col items-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-slate-500 text-white text-[10px] font-bold flex items-center justify-center">1</div>
+            <div class="w-px h-4 bg-slate-300"></div>
+          </div>
+          <div class="pb-3 flex-1">
+            <p class="text-xs font-bold text-slate-900">Pane 1・2 を編集</p>
+            <p class="text-[10px] text-ads-muted mt-0.5">台数・CO₂・規制値などを入力</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="flex flex-col items-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-slate-500 text-white text-[10px] font-bold flex items-center justify-center">2</div>
+            <div class="w-px h-4 bg-slate-300"></div>
+          </div>
+          <div class="pb-3 flex-1">
+            <p class="text-xs font-bold text-slate-900">React state が更新</p>
+            <p class="text-[10px] text-ads-muted mt-0.5"><code class="bg-white px-1 rounded border border-ads-border/50">SimulatorState</code> — 画面の「今の状態」（ブラウザメモリ上）</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="flex flex-col items-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">3</div>
+            <div class="w-px h-4 bg-amber-300"></div>
+          </div>
+          <div class="pb-3 flex-1">
+            <p class="text-xs font-bold text-slate-900">自動タイミングで保存</p>
+            <p class="text-[10px] text-ads-muted mt-0.5">何秒後に保存するか等は<strong class="text-slate-700">未決</strong>（1文字ごと / 入力停止後 など）</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="flex flex-col items-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-slate-600 text-white text-[10px] font-bold flex items-center justify-center">4</div>
+            <div class="w-px h-4 bg-slate-300"></div>
+          </div>
+          <div class="pb-3 flex-1">
+            <p class="text-xs font-bold text-slate-900">JSON 文字列に変換</p>
+            <p class="text-[10px] text-ads-muted mt-0.5">オブジェクトをテキスト形式に直す（人間が読めるデータ形式）</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="flex flex-col items-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-slate-700 text-white text-[10px] font-bold flex items-center justify-center">5</div>
+          </div>
+          <div class="flex-1">
+            <p class="text-xs font-bold text-slate-900">localStorage に上書き</p>
+            <div class="mt-2 bg-white border border-ads-border rounded-lg p-3 font-mono text-[10px] text-slate-600 leading-relaxed">
+              <span class="text-ads-dim">キー（鍵の名前）:</span><br>
+              <span class="text-slate-800">"eu-co2-simulator-v1"</span><br><br>
+              <span class="text-ads-dim">値（中身）:</span><br>
+              { version: 1, savedAt, state }
+            </div>
+            <p class="text-[10px] text-ads-muted mt-2">同じキーを<strong class="text-slate-700">毎回上書き</strong> — 履歴は増えず最新1件だけ</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-center gap-2 mb-4">
+        <span class="text-[10px] text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded-full px-3 py-1">↻ 編集のたびに 1→5 を繰り返す</span>
+      </div>
+
+      <!-- Reload -->
+      <p class="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-2">次回 npm run dev で開くとき</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 bg-white border border-ads-border rounded-lg p-4 mb-4">
+        <div class="text-center">
+          <i data-lucide="refresh-cw" class="w-5 h-5 text-slate-500 mx-auto mb-1"></i>
+          <div class="text-[10px] font-bold text-slate-900">ページ読み込み</div>
+        </div>
+        <i data-lucide="arrow-right" class="w-4 h-4 text-ads-dim hidden sm:block"></i>
+        <i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim sm:hidden"></i>
+        <div class="text-center">
+          <i data-lucide="search" class="w-5 h-5 text-slate-500 mx-auto mb-1"></i>
+          <div class="text-[10px] font-bold text-slate-900">localStorage を読む</div>
+        </div>
+        <i data-lucide="arrow-right" class="w-4 h-4 text-ads-dim hidden sm:block"></i>
+        <i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim sm:hidden"></i>
+        <div class="text-center p-2 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+          <i data-lucide="monitor" class="w-5 h-5 text-amber-600 mx-auto mb-1"></i>
+          <div class="text-[10px] font-bold text-slate-900">前回の編集を復元</div>
+        </div>
+      </div>
+
+      <ul class="text-[10px] text-ads-muted space-y-1.5 border-t border-ads-border/50 pt-3">
+        <li class="flex gap-1.5"><i data-lucide="minus" class="w-3 h-3 flex-shrink-0 mt-0.5"></i><span>サーバー DB は使わない（PC のブラウザ内だけ）</span></li>
+        <li class="flex gap-1.5"><i data-lucide="minus" class="w-3 h-3 flex-shrink-0 mt-0.5"></i><span>別 PC・別ブラウザには<strong class="text-slate-700">自動では引き継がれない</strong></span></li>
+        <li class="flex gap-1.5"><i data-lucide="minus" class="w-3 h-3 flex-shrink-0 mt-0.5"></i><span>名前付きシナリオ複数は想定外（作業中1状態）</span></li>
+        <li class="flex gap-1.5"><i data-lucide="alert-circle" class="w-3 h-3 text-amber-600 flex-shrink-0 mt-0.5"></i><span><strong class="text-slate-700">未実装</strong> — 型と定数だけ残存</span></li>
+      </ul>
+    </div>
+
+    <!-- NEW: PostgreSQL explicit save mechanism -->
+    <div class="bg-ads-accent/5 border-2 border-ads-accent/25 rounded-xl p-5 md:p-6">
+      <div class="inline-flex items-center gap-1.5 bg-ads-accent/10 text-ads-accent-light px-3 py-1 rounded-full text-xs font-bold mb-4">
+        <i data-lucide="server" class="w-3.5 h-3.5"></i>
+        現行: PostgreSQL 明示「保存」
+      </div>
+
+      <p class="text-xs text-ads-muted mb-4 leading-relaxed">
+        <strong class="text-slate-800">PostgreSQL</strong>＝表形式でデータを保管する DB。<strong class="text-slate-800">明示「保存」</strong>＝ユーザーがボタンを押したときだけ、サーバー経由で Neon に書き込む。編集中はブラウザメモリだけ。
+      </p>
+
+      <!-- Edit phase - no auto save -->
+      <p class="text-[10px] font-bold text-ads-accent-light uppercase tracking-wide mb-2">編集中（自動保存なし）</p>
+      <div class="space-y-0 mb-4">
+        <div class="flex gap-3 items-start">
+          <div class="flex flex-col items-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-ads-accent text-white text-[10px] font-bold flex items-center justify-center">1</div>
+            <div class="w-px h-4 bg-ads-accent/30"></div>
+          </div>
+          <div class="pb-3 flex-1">
+            <p class="text-xs font-bold text-slate-900">Pane 1・2 を編集</p>
+            <p class="text-[10px] text-ads-muted mt-0.5">変更は <code class="bg-white px-1 rounded border border-ads-border/50">SimulatorState</code>（ブラウザメモリ）のみ</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="flex flex-col items-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">×</div>
+          </div>
+          <div class="flex-1">
+            <p class="text-xs font-bold text-slate-900">localStorage には書かない</p>
+            <p class="text-[10px] text-ads-muted mt-0.5">タブを閉じる・リロードすると<strong class="text-slate-700">未保存分は消える</strong>（保存済みシナリオは DB から再読込）</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Save phase -->
+      <p class="text-[10px] font-bold text-emerald-600 uppercase tracking-wide mb-2">「保存」ボタンを押したとき</p>
+      <div class="space-y-0 mb-4">
+        <div class="flex gap-3 items-start">
+          <div class="flex flex-col items-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">2</div>
+            <div class="w-px h-4 bg-emerald-300"></div>
+          </div>
+          <div class="pb-3 flex-1">
+            <p class="text-xs font-bold text-slate-900">ユーザーが「保存」または「別名で保存」</p>
+            <p class="text-[10px] text-ads-muted mt-0.5">上書き＝同じシナリオ名を UPDATE / 別名＝新しい scenarios 行を INSERT</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="flex flex-col items-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">3</div>
+            <div class="w-px h-4 bg-emerald-300"></div>
+          </div>
+          <div class="pb-3 flex-1">
+            <p class="text-xs font-bold text-slate-900">HTTPS → Vercel（Server Actions）</p>
+            <p class="text-[10px] text-ads-muted mt-0.5">ブラウザからサーバーへ state を送信（ネット経由）</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="flex flex-col items-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-emerald-600 text-white text-[10px] font-bold flex items-center justify-center">4</div>
+            <div class="w-px h-4 bg-emerald-300"></div>
+          </div>
+          <div class="pb-3 flex-1">
+            <p class="text-xs font-bold text-slate-900">サーバーで 3 年分を計算</p>
+            <p class="text-[10px] text-ads-muted mt-0.5">2025 / 2027 / 2030 の結果を算出</p>
+          </div>
+        </div>
+        <div class="flex gap-3 items-start">
+          <div class="flex flex-col items-center flex-shrink-0">
+            <div class="w-6 h-6 rounded-full bg-emerald-700 text-white text-[10px] font-bold flex items-center justify-center">5</div>
+          </div>
+          <div class="flex-1">
+            <p class="text-xs font-bold text-slate-900">Neon PostgreSQL に書き込み</p>
+            <div class="mt-2 flex flex-wrap gap-1">
+              <span class="text-[9px] bg-white border border-emerald-500/20 rounded-full px-2 py-0.5">scenarios</span>
+              <span class="text-[9px] bg-white border border-emerald-500/20 rounded-full px-2 py-0.5">portfolio_rows</span>
+              <span class="text-[9px] bg-white border border-emerald-500/20 rounded-full px-2 py-0.5">regulation_params</span>
+              <span class="text-[9px] bg-white border border-emerald-500/20 rounded-full px-2 py-0.5">weight_coefficients</span>
+              <span class="text-[9px] bg-white border border-emerald-500/20 rounded-full px-2 py-0.5">scenario_results ×3</span>
+            </div>
+            <p class="text-[10px] text-ads-muted mt-2">1 トランザクション（まとめて成功 or 失敗）で UPSERT</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Load phase -->
+      <p class="text-[10px] font-bold text-ads-accent-light uppercase tracking-wide mb-2">シナリオを選び直すとき</p>
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3 bg-white border border-ads-accent/20 rounded-lg p-4 mb-4">
+        <div class="text-center">
+          <i data-lucide="layout-list" class="w-5 h-5 text-ads-accent-light mx-auto mb-1"></i>
+          <div class="text-[10px] font-bold text-slate-900">一覧で選択</div>
+        </div>
+        <i data-lucide="arrow-right" class="w-4 h-4 text-ads-dim hidden sm:block"></i>
+        <i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim sm:hidden"></i>
+        <div class="text-center">
+          <i data-lucide="cloud" class="w-5 h-5 text-ads-accent-light mx-auto mb-1"></i>
+          <div class="text-[10px] font-bold text-slate-900">loadScenario</div>
+        </div>
+        <i data-lucide="arrow-right" class="w-4 h-4 text-ads-dim hidden sm:block"></i>
+        <i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim sm:hidden"></i>
+        <div class="text-center p-2 bg-emerald-500/5 border border-emerald-500/20 rounded-lg">
+          <i data-lucide="database" class="w-5 h-5 text-emerald-600 mx-auto mb-1"></i>
+          <div class="text-[10px] font-bold text-slate-900">Neon から SELECT</div>
+        </div>
+        <i data-lucide="arrow-right" class="w-4 h-4 text-ads-dim hidden sm:block"></i>
+        <i data-lucide="arrow-down" class="w-4 h-4 text-ads-dim sm:hidden"></i>
+        <div class="text-center">
+          <i data-lucide="monitor" class="w-5 h-5 text-amber-600 mx-auto mb-1"></i>
+          <div class="text-[10px] font-bold text-slate-900">画面に復元</div>
+        </div>
+      </div>
+
+      <ul class="text-[10px] text-ads-muted space-y-1.5 border-t border-ads-accent/20 pt-3">
+        <li class="flex gap-1.5"><i data-lucide="check" class="w-3 h-3 text-emerald-600 flex-shrink-0 mt-0.5"></i><span>名前付きシナリオを<strong class="text-slate-700">複数</strong>保持（委員会案・議会案など）</span></li>
+        <li class="flex gap-1.5"><i data-lucide="check" class="w-3 h-3 text-emerald-600 flex-shrink-0 mt-0.5"></i><span>別 PC から同じ URL にアクセスすれば DB から復元</span></li>
+        <li class="flex gap-1.5"><i data-lucide="check" class="w-3 h-3 text-emerald-600 flex-shrink-0 mt-0.5"></i><span>保存時の計算結果（3 年分）も DB に残る</span></li>
+        <li class="flex gap-1.5"><i data-lucide="clock" class="w-3 h-3 text-ads-accent-light flex-shrink-0 mt-0.5"></i><span><strong class="text-slate-700">Phase 2 で実装予定</strong></span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Side-by-side contrast strip -->
+  <div class="bg-ads-surface border border-ads-border rounded-xl p-5 mb-10">
+    <p class="text-xs font-bold text-slate-900 mb-3 text-center">一言で対比 — 永続化だけ</p>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+      <div class="flex gap-3 items-start bg-slate-100 rounded-lg p-4">
+        <i data-lucide="hard-drive" class="w-5 h-5 text-slate-500 flex-shrink-0"></i>
+        <div>
+          <p class="font-bold text-slate-900 mb-1">旧 localStorage</p>
+          <p class="text-ads-muted leading-relaxed">編集 → <strong class="text-slate-700">自動</strong>でブラウザ内に上書き。ボタン不要。PC 内の1作業状態。</p>
+        </div>
+      </div>
+      <div class="flex gap-3 items-start bg-ads-accent/5 border border-ads-accent/15 rounded-lg p-4">
+        <i data-lucide="database" class="w-5 h-5 text-ads-accent-light flex-shrink-0"></i>
+        <div>
+          <p class="font-bold text-slate-900 mb-1">現行 PostgreSQL</p>
+          <p class="text-ads-muted leading-relaxed">編集 → メモリのみ。「<strong class="text-slate-700">保存</strong>」でクラウド DB に書込。名前付きシナリオ複数。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Old architecture diagram -->
-  <h3 class="text-lg font-bold text-slate-900 mb-4">旧合意のデータの流れ</h3>
+  <h3 class="text-lg font-bold text-slate-900 mb-4">旧合意のデータの流れ（全体像）</h3>
   <p class="text-sm text-ads-muted mb-4">
     <strong class="text-slate-800">localStorage</strong>（ローカルストレージ）は、ブラウザが PC 内に確保する小さな保存領域です。サイトごとにキーと値を覚えておき、次回アクセス時に読み戻せます。
   </p>
@@ -342,7 +597,7 @@
   </div>
 
   <!-- New architecture diagram -->
-  <h3 class="text-lg font-bold text-slate-900 mb-4">現行合意のデータの流れ</h3>
+  <h3 class="text-lg font-bold text-slate-900 mb-4">現行合意のデータの流れ（全体像）</h3>
   <p class="text-sm text-ads-muted mb-4">
     <strong class="text-slate-800">PostgreSQL</strong> は表形式でデータを保管するデータベース。<strong class="text-slate-800">Neon</strong> はそれをクラウド上で提供するサービスです。Vercel 上のアプリがネット経由で読み書きします。
   </p>

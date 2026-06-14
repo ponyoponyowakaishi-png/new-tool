@@ -107,6 +107,13 @@ sequenceDiagram
 
 ## 4. 実装 TODO
 
+### 4.0 Phase 1 クリーンアップ（Phase 2 着手前に実施）
+
+§17（localStorage → PostgreSQL 移行）により、Phase 1 で作成した以下のコードが旧仕様の遺物となった。Phase 2 実装を始める前に削除する。
+
+- [ ] `lib/constants.ts` の `STORAGE_KEY` を削除（旧 localStorage 用キー名。現在どこからも参照されていない）
+- [ ] `lib/types.ts` の `PersistedSimulatorSnapshot` を削除（旧 localStorage 単一スナップショット型。新 Phase 2 の DB 保存は `SimulatorState` → `lib/db-types.ts` ヘルパー → DB テーブル行 の経路で行うため不要）
+
 ### 4.1 インフラ・認証
 
 - [ ] Vercel デプロイ設定、`DATABASE_URL` 環境変数

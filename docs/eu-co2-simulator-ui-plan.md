@@ -1,6 +1,7 @@
 # 欧州CO₂シミュレーター — UIのみ完成計画
 
 > **保存日**: 2026-05-21（レイアウト更新: 横4ペイン）  
+> **§17 影響を 2026-06-14 に反映** — 実行環境が「ローカル npm run dev のみ」から「Vercel + Neon」へ変更。localStorage / JSON は v1 対象外。旧仕様の遺物（`STORAGE_KEY`・`PersistedSimulatorSnapshot`）の扱いを訂正。  
 > **関連**: [eu-co2-simulator-grill-decisions.md](./eu-co2-simulator-grill-decisions.md)（グリル合意）  
 > **フェーズ**: UI のみ（計算・保存・API は Phase 2）  
 > **Pane 3**: 固定サンプル数値（入力変更に非連動）— ユーザー確認済み  
@@ -101,7 +102,7 @@ flowchart TB
 - **`YearRegulation`（年別）**: 燃料クレジット, グリーン鉄, 小型EV係数, 罰金単価, `useManualTarget`, `manualTargetGPerKm`, `targetGPerKm`（年次表）
 - `SimulatorState`: portfolios, `regulationsByYear: Record<RegulationYear, YearRegulation>`, `weightCoefficients: { a, m0 }`, activePortfolio, selectedYear
 - **`CalculationInput` / `CalculationResult`**（Phase 2 用。`achievementRatePercent: number | null` で除算ガードを型表現）
-- `PersistedSimulatorSnapshot`: `{ version: 1, savedAt, state }`（保存は Phase 2、型だけ先に定義）
+- ~~`PersistedSimulatorSnapshot`: `{ version: 1, savedAt, state }`~~ — **旧 localStorage 設計の遺物。Phase 2 では使わない。** 新 Phase 2 の保存は `SimulatorState` を `lib/db-types.ts` のヘルパーで DB テーブル行に変換するため、このスナップショット型は不要。**Phase 2 着手前に `lib/types.ts` から削除する。**
 - `AnalystRequestPayload`（Pane 4 将来用。UI では未送信）
 
 ※ 単一のフラット `RegulationScenario` は **採用しない**（年別合意・プリセット適用の手戻り防止）
@@ -110,7 +111,7 @@ flowchart TB
 
 | ファイル | 役割 |
 |----------|------|
-| `lib/constants.ts` | `MAX_VEHICLES=10`, プリセット値, 暫定年次, a/M0 初期値, `STORAGE_KEY`, `// OPEN: §13.x` |
+| `lib/constants.ts` | `MAX_VEHICLES=10`, プリセット値, 暫定年次, a/M0 初期値, `// OPEN: §13.x` ／ ~~`STORAGE_KEY`~~ **旧 localStorage 設計の遺物。Phase 2 着手前に削除する。** |
 | `lib/defaults.ts` | `createInitialState()` — 5〜6行サンプル車種・年別規制初期値 |
 | `lib/sample-data.ts` | 表示ラベル・Pane4 モック Markdown 文言（定数 import） |
 | `lib/parse.ts` | `parseNonNegativeInt` 等（入力正規化） |
@@ -274,6 +275,11 @@ docs/
 - [ ] 年別 `regulationsByYear`・行 `id`・`CalculationResult` 整合
 - [ ] SUBARU実車名・実数値なし、JAMA文言なし
 - [ ] `npm run build` + updater 最小テスト合格
+
+**Phase 2 着手前に実施するクリーンアップ（§17 による旧仕様遺物の除去）**
+
+- [ ] `lib/constants.ts` から `STORAGE_KEY` を削除（旧 localStorage 用、現在未参照）
+- [ ] `lib/types.ts` から `PersistedSimulatorSnapshot` を削除（旧 localStorage 用、新 Phase 2 の DB 保存では未使用）
 
 ---
 
