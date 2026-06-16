@@ -1,6 +1,6 @@
 # 欧州CO₂シミュレーター — Phase 2 実装計画（計算・保存・デプロイ）
 
-> **保存日**: 2026-06-11  
+> **保存日**: 2026-06-11（2026-06-17 グリル追記）  
 > **関連**: [eu-co2-simulator-grill-decisions.md](./eu-co2-simulator-grill-decisions.md) §17（保存方針グリル合意）  
 > **図解**: [co2-simulator-data-persistence.html](./co2-simulator-data-persistence.html)  
 > **前提**: [eu-co2-simulator-ui-plan.md](./eu-co2-simulator-ui-plan.md) の UI フェーズは完了済み
@@ -124,7 +124,9 @@ sequenceDiagram
 ### 4.2 計算
 
 - [ ] `lib/calculations.ts` — §7 の式 + 重量補正 + 対象年連動
-- [ ] 除算ガード（実質排出量 0 → `achievementRatePercent: null`）
+- [ ] 除算ガード: 実質排出量 = 0 のとき `achievementRatePercent = Infinity`。画面は **「≥100%」** 表示。DB 保存時のみ `null` に変換（2026-06-17 確定）
+- [ ] 重量補正式: `effectiveTarget = targetGPerKm + a × (fleetAvgWeightKg − m0)`。係数初期値 `a=0.0333` / `M0=1377` は Pane2 詳細設定で手入力変更可（2026-06-17 確定）
+- [ ] Pane3 表示は **常に `calculations.ts` でリアルタイム再計算**（isDirty 管理なし。DB の `scenario_results` は将来比較用の保存にとどめる）（2026-06-17 確定）
 - [ ] `lib/selectors.ts` の `toCalculationInput` / `getDisplayTargetCo2` を本番接続
 - [ ] Pane3 を state + calculations に接続（デモ Badge 削除）
 
@@ -186,9 +188,9 @@ components/
 
 ## 7. 未決（実装時に確定）
 
-| 論点 | 推奨 |
+| 論点 | 状態 |
 |------|------|
-| Basic 認証 | Next.js `middleware.ts` + 環境変数 |
+| ~~Basic 認証~~ | ✅ **確定**: `middleware.ts` + `BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD` 環境変数（2026-06-17） |
 | 子テーブル更新 | 保存時に portfolio/regulation/weight を DELETE+INSERT（単純） |
 | seed と defaults の同期 | README 手順。余裕があれば `db/generate-seed.mjs` |
 | LLM API | Phase 2 後半または Phase 3。v1 はモック維持可 |
