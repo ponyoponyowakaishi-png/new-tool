@@ -62,12 +62,6 @@ export interface CalculationResult {
   isCompliant: boolean;
 }
 
-export interface PersistedSimulatorSnapshot {
-  version: 1;
-  savedAt: string;
-  state: SimulatorState;
-}
-
 export interface AnalystRequestPayload {
   input: CalculationInput;
   result: CalculationResult;

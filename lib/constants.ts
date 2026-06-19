@@ -4,8 +4,6 @@ export const MAX_VEHICLES = 10;
 
 export const REGULATION_YEARS: RegulationYear[] = [2025, 2027, 2030];
 
-export const STORAGE_KEY = "eu-co2-simulator-v1";
-
 // OPEN: §13 — 年次初期 g/km の公式根拠
 export const INITIAL_YEAR_TARGETS: Record<RegulationYear, number> = {
   2025: 95,
@@ -51,9 +49,3 @@ export const PRESETS: Record<
     },
   },
 };
-
-export const UI_WEIGHT_PREVIEW = {
-  averageWeightKg: 1580,
-  adjustedTargetGPerKm: 92.1,
-  effectiveTargetGPerKm: 92.1,
-} as const;

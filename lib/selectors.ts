@@ -1,5 +1,4 @@
-import { UI_WEIGHT_PREVIEW } from "@/lib/constants";
-import { isBevPowertrain } from "@/lib/sample-data";
+import { resolveTargetGPerKm } from "@/lib/calculations";
 import type {
   ActivePortfolioKey,
   CalculationInput,
@@ -37,13 +36,8 @@ export function toCalculationInput(state: SimulatorState): CalculationInput {
   };
 }
 
-/** UI フェーズ: 重量補正計算のスタブ */
 export function getDisplayTargetCo2(state: SimulatorState): number | null {
-  const reg = getRegulationForYear(state, state.selectedYear);
-  if (reg.useManualTarget) {
-    return reg.manualTargetGPerKm;
-  }
-  return UI_WEIGHT_PREVIEW.effectiveTargetGPerKm;
+  return resolveTargetGPerKm(toCalculationInput(state));
 }
 
 export function portfolioKeyToBundleKey(

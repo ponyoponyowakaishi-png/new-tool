@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { AppHeader } from "@/components/layout/AppHeader";
 import { ContextBar } from "@/components/layout/ContextBar";
+import { ScenarioBar } from "@/components/layout/ScenarioBar";
 import { Pane4Rail } from "@/components/layout/Pane4Rail";
 import { ScopeAlerts } from "@/components/layout/ScopeAlerts";
 import { WorkspacePane } from "@/components/layout/WorkspacePane";
@@ -25,6 +26,7 @@ export function SimulatorShell() {
       <div className="flex h-screen min-h-screen flex-col bg-background">
         <header className="shrink-0 space-y-3 border-b px-4 py-4">
           <AppHeader />
+          <ScenarioBar />
           <ScopeAlerts />
           <ContextBar />
         </header>
@@ -43,7 +45,6 @@ export function SimulatorShell() {
           <WorkspacePane
             id="pane-3"
             layout="equal"
-            variant="demo"
             className={pane4Open ? undefined : "border-r-0"}
           >
             <Pane3Results />

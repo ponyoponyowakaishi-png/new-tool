@@ -124,6 +124,19 @@ export type InsertAiAnalysis = Omit<AiAnalysisRow, "id" | "created_at">;
 // ---------------------------------------------------------------------------
 // ドメイン型 ←→ DB行型 変換ヘルパー
 // ---------------------------------------------------------------------------
+
+/** PostgreSQL の NUMERIC は Neon 経由で文字列になることがある */
+function toNullableNumber(
+  value: number | string | null | undefined,
+): number | null {
+  if (value === null || value === undefined) return null;
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isNaN(n) ? null : n;
+}
+
+function toNumber(value: number | string | null | undefined, fallback = 0): number {
+  return toNullableNumber(value) ?? fallback;
+}
 import type {
   VehicleRow,
   YearRegulation,
@@ -131,7 +144,9 @@ import type {
   CalculationResult,
   RegulationYear,
   ActivePortfolioKey,
+  SimulatorState,
 } from "@/lib/types";
+import { REGULATION_YEARS } from "@/lib/constants";
 
 /**
  * VehicleRow（ドメイン）→ InsertPortfolioRow（DB）
@@ -167,9 +182,9 @@ export function toVehicleRow(record: PortfolioRowRecord): VehicleRow {
     id: record.id,
     name: record.name,
     powertrain: record.powertrain,
-    salesCount: record.sales_count,
-    wltpGPerKm: record.wltp_g_per_km,
-    weightKg: record.weight_kg,
+    salesCount: toNullableNumber(record.sales_count),
+    wltpGPerKm: toNullableNumber(record.wltp_g_per_km),
+    weightKg: toNullableNumber(record.weight_kg),
   };
 }
 
@@ -203,13 +218,13 @@ export function toInsertRegulationParam(
  */
 export function toYearRegulation(row: RegulationParamRow): YearRegulation {
   return {
-    targetGPerKm: row.target_g_per_km,
-    fuelCreditGPerKm: row.fuel_credit_g_per_km,
-    greenSteelCreditGPerKm: row.green_steel_credit_g_per_km,
-    smallEvSuperCreditFactor: row.small_ev_super_credit_factor,
-    penaltyPerGPerKmEur: row.penalty_per_g_eur,
+    targetGPerKm: toNullableNumber(row.target_g_per_km),
+    fuelCreditGPerKm: toNullableNumber(row.fuel_credit_g_per_km),
+    greenSteelCreditGPerKm: toNullableNumber(row.green_steel_credit_g_per_km),
+    smallEvSuperCreditFactor: toNullableNumber(row.small_ev_super_credit_factor),
+    penaltyPerGPerKmEur: toNullableNumber(row.penalty_per_g_eur),
     useManualTarget: row.use_manual_target,
-    manualTargetGPerKm: row.manual_target_g_per_km,
+    manualTargetGPerKm: toNullableNumber(row.manual_target_g_per_km),
   };
 }
 
@@ -231,7 +246,7 @@ export function toInsertWeightCoefficient(
  * WeightCoefficientRow（DB）→ WeightCoefficients（ドメイン）
  */
 export function toWeightCoefficients(row: WeightCoefficientRow): WeightCoefficients {
-  return { a: row.a, m0: row.m0 };
+  return { a: toNumber(row.a), m0: toNumber(row.m0) };
 }
 
 /**
@@ -280,4 +295,54 @@ export function toCalculationResult(row: ScenarioResultRow): CalculationResult {
  */
 export function toDbPortfolioBaseYear(key: ActivePortfolioKey): DbPortfolioBaseYear {
   return key as DbPortfolioBaseYear;
+}
+
+/**
+ * DB 行群から SimulatorState を復元する
+ */
+export function buildSimulatorStateFromRows(
+  scenario: ScenarioRow,
+  portfolioRows: PortfolioRowRecord[],
+  regulationParams: RegulationParamRow[],
+  weightCoeff: WeightCoefficientRow | null,
+): SimulatorState {
+  const sortRows = (baseYear: DbPortfolioBaseYear) =>
+    portfolioRows
+      .filter((row) => row.base_year === baseYear)
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map(toVehicleRow);
+
+  const regulationsByYear = REGULATION_YEARS.reduce(
+    (acc, year) => {
+      const row = regulationParams.find(
+        (param) => param.regulation_year === String(year),
+      );
+      acc[year] = row
+        ? toYearRegulation(row)
+        : {
+            targetGPerKm: null,
+            fuelCreditGPerKm: null,
+            greenSteelCreditGPerKm: null,
+            smallEvSuperCreditFactor: null,
+            penaltyPerGPerKmEur: null,
+            useManualTarget: false,
+            manualTargetGPerKm: null,
+          };
+      return acc;
+    },
+    {} as SimulatorState["regulationsByYear"],
+  );
+
+  return {
+    portfolios: {
+      base2025: sortRows("2025"),
+      base2026: sortRows("2026"),
+    },
+    regulationsByYear,
+    weightCoefficients: weightCoeff
+      ? toWeightCoefficients(weightCoeff)
+      : { a: 0.0333, m0: 1377 },
+    activePortfolio: scenario.active_portfolio as ActivePortfolioKey,
+    selectedYear: Number(scenario.selected_year) as RegulationYear,
+  };
 }

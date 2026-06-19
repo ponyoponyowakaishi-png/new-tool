@@ -11,7 +11,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Input } from "@/components/ui/input";
+import { NumberField } from "@/components/ui/number-field";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -29,8 +29,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { PRESETS, REGULATION_YEARS, UI_WEIGHT_PREVIEW } from "@/lib/constants";
-import { parseNonNegativeFloat } from "@/lib/parse";
+import { PRESETS, REGULATION_YEARS } from "@/lib/constants";
+import { computeWeightPreview } from "@/lib/calculations";
+import { formatNumber } from "@/lib/parse";
 import { getDisplayTargetCo2, getRegulationForYear } from "@/lib/selectors";
 import type { PresetId, RegulationYear } from "@/lib/types";
 
@@ -39,6 +40,7 @@ export function Pane2Regulation() {
   const year = state.selectedYear;
   const reg = getRegulationForYear(state, year);
   const displayTarget = getDisplayTargetCo2(state);
+  const weightPreview = computeWeightPreview(state);
 
   const applyPreset = (id: PresetId) => {
     const label = actions.applyPreset(id, year);
@@ -91,18 +93,13 @@ export function Pane2Regulation() {
                   <TableRow key={y}>
                     <TableCell className="font-medium">{y}</TableCell>
                     <TableCell className="text-right">
-                      <Input
-                        type="number"
+                      <NumberField
                         min={0}
                         className="ml-auto w-28 text-right"
-                        value={
-                          state.regulationsByYear[y].targetGPerKm ?? ""
-                        }
-                        onChange={(e) =>
+                        value={state.regulationsByYear[y].targetGPerKm}
+                        onValueChange={(targetGPerKm) =>
                           actions.updateYearRegulation(y, {
-                            targetGPerKm: parseNonNegativeFloat(
-                              e.target.value,
-                            ),
+                            targetGPerKm,
                           })
                         }
                       />
@@ -178,19 +175,30 @@ export function Pane2Regulation() {
         <div>
           <h3 className="mb-3 text-sm font-semibold">重量補正（プレビュー）</h3>
           <p className="mb-4 text-xs text-muted-foreground">
-            Pane 1 の表から算出する処理は次フェーズです。表示はサンプル固定値です。
+            Pane 1 の販売台数・重量から算出した値です。
           </p>
           <dl className="grid gap-4 sm:grid-cols-3">
-            <Metric label="販売加重平均重量" value={`${UI_WEIGHT_PREVIEW.averageWeightKg} kg`} />
+            <Metric
+              label="販売加重平均重量"
+              value={
+                weightPreview.averageWeightKg !== null
+                  ? `${formatNumber(weightPreview.averageWeightKg, 1)} kg`
+                  : "—"
+              }
+            />
             <Metric
               label="補正後目標 CO₂"
-              value={`${UI_WEIGHT_PREVIEW.adjustedTargetGPerKm} g/km`}
+              value={
+                weightPreview.adjustedTargetGPerKm !== null
+                  ? `${formatNumber(weightPreview.adjustedTargetGPerKm, 1)} g/km`
+                  : "—"
+              }
             />
             <Metric
               label="実効目標（表示）"
               value={
                 displayTarget !== null
-                  ? `${displayTarget} g/km`
+                  ? `${formatNumber(displayTarget, 1)} g/km`
                   : "—"
               }
             />
@@ -210,16 +218,15 @@ export function Pane2Regulation() {
             </Label>
           </div>
           <div className="mt-2">
-            <Input
-              type="number"
+            <NumberField
               min={0}
               disabled={!reg.useManualTarget}
               className="max-w-xs"
               placeholder="手入力目標 g/km"
-              value={reg.manualTargetGPerKm ?? ""}
-              onChange={(e) =>
+              value={reg.manualTargetGPerKm}
+              onValueChange={(manualTargetGPerKm) =>
                 actions.updateYearRegulation(year, {
-                  manualTargetGPerKm: parseNonNegativeFloat(e.target.value),
+                  manualTargetGPerKm,
                 })
               }
             />
@@ -259,21 +266,23 @@ function Field({
   value,
   onChange,
   step,
+  integer,
 }: {
   label: string;
   value: number | null;
   onChange: (v: number | null) => void;
   step?: string;
+  integer?: boolean;
 }) {
   return (
     <div className="space-y-2">
       <Label className="text-xs text-muted-foreground">{label}</Label>
-      <Input
-        type="number"
+      <NumberField
         min={0}
         step={step}
-        value={value ?? ""}
-        onChange={(e) => onChange(parseNonNegativeFloat(e.target.value))}
+        integer={integer}
+        value={value}
+        onValueChange={onChange}
       />
     </div>
   );

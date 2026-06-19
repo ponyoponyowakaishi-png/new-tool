@@ -6,6 +6,7 @@ import { PaneSectionHeader } from "@/components/panes/PaneSectionHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { NumberField } from "@/components/ui/number-field";
 import {
   Select,
   SelectContent,
@@ -28,7 +29,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { MAX_VEHICLES } from "@/lib/constants";
-import { parseNonNegativeFloat, parseNonNegativeInt } from "@/lib/parse";
 import {
   isBevPowertrain,
   PORTFOLIO_LABELS,
@@ -134,15 +134,13 @@ export function Pane1Portfolio() {
                     </Select>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Input
-                      type="number"
+                    <NumberField
+                      integer
                       min={0}
                       className="ml-auto w-24 text-right"
-                      value={row.salesCount ?? ""}
-                      onChange={(e) =>
-                        actions.updateVehicleRow(row.id, {
-                          salesCount: parseNonNegativeInt(e.target.value),
-                        })
+                      value={row.salesCount}
+                      onValueChange={(salesCount) =>
+                        actions.updateVehicleRow(row.id, { salesCount })
                       }
                     />
                   </TableCell>
@@ -150,18 +148,13 @@ export function Pane1Portfolio() {
                     <Tooltip>
                       <TooltipTrigger
                         render={
-                          <Input
-                            type="number"
+                          <NumberField
                             min={0}
                             disabled={bev}
                             className="ml-auto w-24 text-right"
-                            value={bev ? 0 : (row.wltpGPerKm ?? "")}
-                            onChange={(e) =>
-                              actions.updateVehicleRow(row.id, {
-                                wltpGPerKm: parseNonNegativeFloat(
-                                  e.target.value,
-                                ),
-                              })
+                            value={bev ? 0 : row.wltpGPerKm}
+                            onValueChange={(wltpGPerKm) =>
+                              actions.updateVehicleRow(row.id, { wltpGPerKm })
                             }
                           />
                         }
@@ -172,15 +165,12 @@ export function Pane1Portfolio() {
                     </Tooltip>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Input
-                      type="number"
+                    <NumberField
                       min={0}
                       className="ml-auto w-24 text-right"
-                      value={row.weightKg ?? ""}
-                      onChange={(e) =>
-                        actions.updateVehicleRow(row.id, {
-                          weightKg: parseNonNegativeFloat(e.target.value),
-                        })
+                      value={row.weightKg}
+                      onValueChange={(weightKg) =>
+                        actions.updateVehicleRow(row.id, { weightKg })
                       }
                     />
                   </TableCell>

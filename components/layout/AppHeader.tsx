@@ -9,8 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const DISABLED_TOOLTIP =
-  "JSON 入出力は計算・保存フェーズで有効化されます";
+const DISABLED_TOOLTIP = "JSON 入出力は v1 対象外です";
 
 export function AppHeader() {
   return (
@@ -22,7 +21,6 @@ export function AppHeader() {
               欧州CO₂規制シナリオ・シミュレーター
             </h1>
             <Badge variant="outline">サンプルデータ（架空数値）</Badge>
-            <Badge variant="secondary">保存は次フェーズ</Badge>
           </div>
           <p className="max-w-2xl text-sm text-muted-foreground">
             販売ポートフォリオと規制シナリオを組み合わせ、フリートCO₂・達成率・罰金の試算と社内文案のたたき台を行う社内ツール（個人用試作）

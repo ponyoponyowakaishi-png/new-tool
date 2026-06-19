@@ -115,6 +115,14 @@ export function useSimulatorState() {
     return preset.label;
   }, []);
 
+  const replaceState = useCallback((next: SimulatorState) => {
+    setState(next);
+  }, []);
+
+  const resetToDefaults = useCallback(() => {
+    setState(createInitialState());
+  }, []);
+
   const actions = useMemo(
     () => ({
       setActivePortfolio,
@@ -125,6 +133,8 @@ export function useSimulatorState() {
       updateYearRegulation,
       updateWeightCoefficients,
       applyPreset,
+      replaceState,
+      resetToDefaults,
     }),
     [
       setActivePortfolio,
@@ -135,6 +145,8 @@ export function useSimulatorState() {
       updateYearRegulation,
       updateWeightCoefficients,
       applyPreset,
+      replaceState,
+      resetToDefaults,
     ],
   );
 

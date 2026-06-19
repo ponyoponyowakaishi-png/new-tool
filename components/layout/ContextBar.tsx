@@ -17,9 +17,7 @@ export function ContextBar() {
       <Badge variant="outline">
         ポートフォリオ: {PORTFOLIO_LABELS[state.activePortfolio]}
       </Badge>
-      <Badge className="border-amber-500/50 bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-        計算: デモ固定（入力未連動）
-      </Badge>
+      <Badge variant="outline">計算: リアルタイム</Badge>
     </div>
   );
 }
