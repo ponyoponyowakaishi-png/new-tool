@@ -1,6 +1,6 @@
 # 欧州CO₂シミュレーター — Phase 2 実装計画（計算・保存・デプロイ）
 
-> **保存日**: 2026-06-11（2026-06-17 グリル追記）  
+> **保存日**: 2026-06-11（2026-06-17 グリル追記、2026-07-02 AI実装グリル追記）  
 > **関連**: [eu-co2-simulator-grill-decisions.md](./eu-co2-simulator-grill-decisions.md) §17（保存方針グリル合意）  
 > **図解**: [co2-simulator-data-persistence.html](./co2-simulator-data-persistence.html)  
 > **前提**: [eu-co2-simulator-ui-plan.md](./eu-co2-simulator-ui-plan.md) の UI フェーズは完了済み
@@ -16,6 +16,7 @@
 | 保存時に **3年分** の `scenario_results` を UPSERT | `ai_analyses` への INSERT |
 | Basic 認証（Vercel 公開） | ユーザー別ログイン・データ分離 |
 | シナリオ一覧・読込・上書き保存・別名保存・削除 | `.fia` ZIP |
+| Pane4 本番 AI 接続（Phase 2 後半・`calculations.ts` 完成後） | LLM APIキー不要での本番品質出力 |
 
 **v1 完成定義（§14 継承）**: 計算（重量補正・年次・仕様ロジック）＋ **DB 保存が正しく動く**こと。
 
@@ -153,6 +154,15 @@ sequenceDiagram
 - [ ] `lib/calculations.ts` — 合意式の単体テスト（達成/未達、BEV WLTP 0、重量補正）
 - [ ] 保存 API の統合テスト（任意: Neon テスト DB またはモック）
 
+### 4.6 AI 本番接続（`calculations.ts` 完成後に着手）
+
+- [ ] `openai` SDK をインストール（`npm install openai`）
+- [ ] `app/api/analyze/route.ts` — OpenAI ストリーミング Route Handler（`OPENAI_API_KEY` 未設定時はモック応答にフォールバック）（2026-07-02 確定）
+- [ ] `lib/ai-prompt.ts` — `CalculationInput` + `CalculationResult` からプロンプトを組み立てる関数（2026-07-02 確定）
+- [ ] Pane4 UI をストリーミング受信対応に改修（`ReadableStream` を逐次 append してリアルタイム表示）（2026-07-02 確定）
+- [ ] API 呼び出しエラー時は Pane4 エリアにインラインエラーメッセージを表示（2026-07-02 確定）
+- [ ] Pane4 の「モック」Badge・文言を、APIキー設定有無に応じて切り替え
+
 ---
 
 ## 5. ファイル構成（Phase 2 追加分）
@@ -160,9 +170,11 @@ sequenceDiagram
 ```
 app/
   actions/scenarios.ts    # Server Actions（新規）
+  api/analyze/route.ts    # OpenAI ストリーミング Route Handler（新規）
 middleware.ts             # Basic 認証（新規）
 lib/
   calculations.ts         # 本番計算（新規）
+  ai-prompt.ts            # プロンプト組み立て関数（新規）
   db.ts                   # 既存
   db-types.ts             # 既存
 db/
@@ -182,7 +194,8 @@ components/
 3. シナリオ UI + Provider 連携（DB 読込・保存）
 4. Basic 認証 middleware
 5. Vercel + Neon デプロイ、本番 schema 適用
-6. 手動 E2E: 空 DB → defaults 表示 → 保存 → 再読込 → 別名保存 → 削除
+6. Pane4 本番 AI 接続（`openai` SDK + ストリーミング Route Handler）（2026-07-02 確定）
+7. 手動 E2E: 空 DB → defaults 表示 → 保存 → 再読込 → 別名保存 → 削除
 
 ---
 
@@ -193,7 +206,7 @@ components/
 | ~~Basic 認証~~ | ✅ **確定**: `middleware.ts` + `BASIC_AUTH_USER` / `BASIC_AUTH_PASSWORD` 環境変数（2026-06-17） |
 | 子テーブル更新 | 保存時に portfolio/regulation/weight を DELETE+INSERT（単純） |
 | seed と defaults の同期 | README 手順。余裕があれば `db/generate-seed.mjs` |
-| LLM API | Phase 2 後半または Phase 3。v1 はモック維持可 |
+| ~~LLM API~~ | ✅ **確定（2026-07-02）**: OpenAI GPT-4o-mini、ストリーミング、`calculations.ts` 完成後に実装 |
 
 ---
 
