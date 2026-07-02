@@ -107,6 +107,13 @@ export function ScenarioBar() {
     toast.message("新規シナリオを開始しました（未保存）");
   };
 
+  const selectedScenarioLabel =
+    currentName ??
+    (currentId
+      ? scenarios.find((scenario) => scenario.id === currentId)?.name
+      : null) ??
+    null;
+
   const handleDelete = async () => {
     if (!currentId) {
       toast.error("削除する保存済みシナリオがありません");
@@ -150,9 +157,9 @@ export function ScenarioBar() {
         disabled={busy}
       >
         <SelectTrigger className="w-[min(100%,280px)]" aria-label="シナリオを選択">
-          <SelectValue
-            placeholder={currentName ?? "（未保存・サンプル表示）"}
-          />
+          <SelectValue placeholder="（未保存・サンプル表示）">
+            {selectedScenarioLabel}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {scenarios.length === 0 ? (
