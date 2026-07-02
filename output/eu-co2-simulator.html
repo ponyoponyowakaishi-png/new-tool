@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="googlebot" content="noindex, nofollow">
+  <meta property="og:title" content="欧州CO₂規制シミュレーターとは？">
+  <meta property="og:description" content="欧州の排ガスルールを知らなくても使える、社内試算ツールの図解。売る前に罰金が見える。">
+  <meta property="og:type" content="article">
+  <title>欧州CO₂規制シミュレーターとは？</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23FFFFFF'/><rect x='8' y='8' width='84' height='84' rx='14' fill='none' stroke='%233B82F6' stroke-width='4'/><circle cx='32' cy='40' r='10' fill='%233B82F6' opacity='0.8'/><circle cx='68' cy='40' r='10' fill='%2360A5FA' opacity='0.8'/><rect x='25' y='62' width='50' height='6' rx='3' fill='%2394A3B8' opacity='0.6'/><rect x='30' y='74' width='40' height='6' rx='3' fill='%2394A3B8' opacity='0.3'/></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ads: {
+              bg: '#FFFFFF',
+              surface: '#F8FAFC',
+              hover: '#F1F5F9',
+              border: '#E2E8F0',
+              accent: '#3B82F6',
+              'accent-light': '#2563EB',
+              text: '#1E293B',
+              muted: '#64748B',
+              dim: '#94A3B8',
+              positive: '#10B981',
+              negative: '#EF4444',
+              warning: '#F59E0B',
+            }
+          },
+          fontFamily: {
+            sans: ['"Noto Sans JP"', '"Hiragino Sans"', '"Hiragino Kaku Gothic ProN"', '"Yu Gothic UI"', '"Meiryo"', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    @media print {
+      .no-print { display: none !important; }
+      body { border-top: none !important; }
+      .rounded-xl { break-inside: avoid; }
+      .md\:flex-row { flex-direction: row !important; }
+      .md\:hidden { display: none !important; }
+      .hidden.md\:block { display: block !important; }
+      .md\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+      .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+      .md\:mb-20 { margin-bottom: 5rem !important; }
+      .md\:py-16 { padding-top: 4rem !important; padding-bottom: 4rem !important; }
+      .bg-clip-text.text-transparent {
+        -webkit-background-clip: initial !important;
+        background-clip: initial !important;
+        color: #2563EB !important;
+        -webkit-text-fill-color: #2563EB !important;
+      }
+    }
+  </style>
+</head>
+<body class="bg-ads-bg text-slate-600 antialiased leading-relaxed border-t-4 border-ads-accent">
+  <div class="no-print max-w-3xl mx-auto px-5 pt-2 flex justify-end">
+    <button onclick="window.print()" class="flex items-center gap-1.5 text-xs text-ads-dim hover:text-ads-accent transition-colors cursor-pointer">
+      <i data-lucide="download" class="w-3.5 h-3.5"></i>
+      PDF
+    </button>
+  </div>
+  <main class="max-w-3xl mx-auto px-5 py-10 md:py-16">
+
+<!-- LOGIN INFO -->
+<div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-6 md:p-8 mb-10">
+  <div class="flex items-center gap-3 mb-4">
+    <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center shrink-0">
+      <i data-lucide="key-round" class="w-5 h-5 text-white"></i>
+    </div>
+    <div>
+      <h2 class="text-lg font-black text-slate-900">ツールを開く（ログイン情報）</h2>
+      <p class="text-xs text-ads-muted">本番サイトはパスワード保護されています</p>
+    </div>
+  </div>
+
+  <div class="bg-white border border-ads-border rounded-xl p-4 mb-4">
+    <p class="text-xs text-ads-dim mb-1">アクセスURL</p>
+    <p class="font-bold text-ads-accent-light text-sm break-all">https://new-tool-woad.vercel.app</p>
+  </div>
+
+  <div class="grid sm:grid-cols-2 gap-4 mb-4">
+    <div class="bg-white border border-ads-border rounded-xl p-4">
+      <p class="text-xs text-ads-dim mb-1">ユーザー名</p>
+      <p class="font-mono font-bold text-slate-900 text-lg">admin</p>
+    </div>
+    <div class="bg-white border border-ads-border rounded-xl p-4">
+      <p class="text-xs text-ads-dim mb-1">パスワード</p>
+      <p class="font-mono font-bold text-slate-900 text-lg">EuCo2-Sim-2026</p>
+    </div>
+  </div>
+
+  <p class="text-xs text-ads-muted leading-relaxed">
+    ブラウザでURLを開くとログイン画面が表示されます。上記のユーザー名とパスワードを入力してください。
+  </p>
+</div>
+
+<!-- HERO -->
+<div class="text-center mb-8 md:mb-10">
+  <div class="inline-flex items-center gap-2 bg-emerald-500/10 text-emerald-700 px-4 py-1.5 rounded-full text-sm font-medium mb-6">
+    <i data-lucide="car" class="w-4 h-4"></i>
+    ビジネスツール
+  </div>
+  <h1 class="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">
+    <span class="bg-gradient-to-r from-emerald-600 to-blue-600 bg-clip-text text-transparent">売る前に、罰金が見える。</span>
+  </h1>
+  <p class="text-lg text-ads-muted max-w-xl mx-auto leading-relaxed mb-2">
+    欧州CO₂規制シミュレーター
+  </p>
+  <p class="text-sm text-ads-dim max-w-lg mx-auto">
+    ひとことで言うと ──
+  </p>
+</div>
+
+<!-- ONE-PAGE SUMMARY -->
+<div class="bg-ads-surface border border-ads-border rounded-2xl p-6 md:p-10 mb-6">
+  <div class="text-center mb-8">
+    <p class="text-xl md:text-2xl font-black text-slate-900 mb-2">
+      「来年ヨーロッパで何台、どんな車を売る？」を入れると<br>
+      <span class="text-ads-accent-light">達成できるか・罰金いくらか</span>がすぐわかる社内試算ツール
+    </p>
+    <p class="text-sm text-ads-muted">欧州の排ガスルールを知らなくても使える。数字を変えると結果がリアルタイムで変わる。</p>
+  </div>
+
+  <!-- Core flow -->
+  <div class="flex flex-col md:flex-row items-stretch justify-center gap-3 md:gap-2 mb-8">
+    <div class="flex-1 bg-white border border-ads-border rounded-xl p-4 text-center">
+      <div class="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center mx-auto mb-2">
+        <i data-lucide="list" class="w-6 h-6 text-blue-600"></i>
+      </div>
+      <div class="font-bold text-slate-900 text-sm">売る車のリスト</div>
+      <div class="text-[11px] text-ads-muted mt-1">ガソリン車・電気車・台数</div>
+    </div>
+    <div class="flex items-center justify-center md:w-10">
+      <i data-lucide="plus" class="w-5 h-5 text-ads-dim hidden md:block"></i>
+      <i data-lucide="plus" class="w-5 h-5 text-ads-dim md:hidden"></i>
+    </div>
+    <div class="flex-1 bg-white border border-ads-border rounded-xl p-4 text-center">
+      <div class="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center mx-auto mb-2">
+        <i data-lucide="scale" class="w-6 h-6 text-amber-600"></i>
+      </div>
+      <div class="font-bold text-slate-900 text-sm">ルールの厳しさ</div>
+      <div class="text-[11px] text-ads-muted mt-1">目標値・緩和策・罰金単価</div>
+    </div>
+    <div class="flex items-center justify-center md:w-10">
+      <i data-lucide="arrow-right" class="w-5 h-5 text-ads-accent hidden md:block"></i>
+      <i data-lucide="arrow-down" class="w-5 h-5 text-ads-accent md:hidden"></i>
+    </div>
+    <div class="flex-1 bg-emerald-500/5 border-2 border-emerald-500/20 rounded-xl p-4 text-center">
+      <div class="w-12 h-12 rounded-xl bg-emerald-500/15 flex items-center justify-center mx-auto mb-2">
+        <i data-lucide="calculator" class="w-6 h-6 text-emerald-600"></i>
+      </div>
+      <div class="font-bold text-emerald-700 text-sm">結果が即表示</div>
+      <div class="text-[11px] text-emerald-600/80 mt-1">達成率・想定罰金</div>
+    </div>
+  </div>
+
+  <div class="flex flex-wrap justify-center gap-2">
+    <div class="flex items-center gap-1.5 bg-white border border-ads-border rounded-full px-3.5 py-1.5 text-xs text-slate-700">
+      <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-500"></i>
+      入力したら即計算
+    </div>
+    <div class="flex items-center gap-1.5 bg-white border border-ads-border rounded-full px-3.5 py-1.5 text-xs text-slate-700">
+      <i data-lucide="save" class="w-3.5 h-3.5 text-blue-500"></i>
+      シナリオを名前付き保存
+    </div>
+    <div class="flex items-center gap-1.5 bg-white border border-ads-border rounded-full px-3.5 py-1.5 text-xs text-slate-700">
+      <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-500"></i>
+      AIが対策案を提案
+    </div>
+  </div>
+</div>
+
+<p class="text-center text-ads-muted mb-16 md:mb-20">
+  ここから、背景のルールとツールの使い方を順番に解説します。
+</p>
+
+<!-- SECTION: そもそも欧州のCO2ルールって？ -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-ads-accent/10 flex items-center justify-center shrink-0">
+      <i data-lucide="help-circle" class="w-5 h-5 text-ads-accent-light"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">そもそも、欧州の「CO₂ルール」とは？</h2>
+  </div>
+
+  <p class="mb-6 leading-relaxed">
+    ヨーロッパでは、自動車メーカーに対して<strong class="text-slate-800">「売る車全体の排気量の平均を、決められたライン以下に抑えなさい」</strong>というルールがあります。排気量の目安は「g/km（1km走るあたり何グラムのCO₂か）」で表します。
+  </p>
+
+  <!-- Analogy -->
+  <div class="bg-ads-surface border border-ads-border rounded-2xl p-6 md:p-8 mb-6">
+    <p class="text-sm font-bold text-ads-accent-light mb-4">身近なたとえ：クラスの平均点</p>
+    <div class="grid md:grid-cols-3 gap-4 items-center">
+      <div class="bg-white border border-ads-border rounded-xl p-4 text-center">
+        <i data-lucide="users" class="w-8 h-8 text-blue-600 mx-auto mb-2"></i>
+        <p class="font-bold text-slate-900 text-sm">生徒＝売る車1台1台</p>
+        <p class="text-xs text-ads-muted mt-1">ガソリン車は「点数が高い」<br>電気車は「点数がゼロ」</p>
+      </div>
+      <div class="bg-white border border-ads-border rounded-xl p-4 text-center">
+        <i data-lucide="bar-chart-2" class="w-8 h-8 text-amber-600 mx-auto mb-2"></i>
+        <p class="font-bold text-slate-900 text-sm">クラス平均＝全体の平均排気量</p>
+        <p class="text-xs text-ads-muted mt-1">台数で重み付けした平均</p>
+      </div>
+      <div class="bg-white border border-ads-border rounded-xl p-4 text-center">
+        <i data-lucide="target" class="w-8 h-8 text-emerald-600 mx-auto mb-2"></i>
+        <p class="font-bold text-slate-900 text-sm">合格ライン＝目標値</p>
+        <p class="text-xs text-ads-muted mt-1">超えた分 × 台数 × 罰金<br>が請求される</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid sm:grid-cols-3 gap-4 mb-4">
+    <div class="bg-white border border-ads-border rounded-xl p-5 text-center">
+      <div class="text-3xl font-black text-ads-accent-light mb-1">年々厳しく</div>
+      <p class="text-xs text-ads-muted">2030年頃には<br>今より大幅にタイトに</p>
+    </div>
+    <div class="bg-white border border-ads-border rounded-xl p-5 text-center">
+      <div class="text-3xl font-black text-amber-600 mb-1">€95</div>
+      <p class="text-xs text-ads-muted">超過1g/kmあたり<br>1台につき罰金（目安）</p>
+    </div>
+    <div class="bg-white border border-ads-border rounded-xl p-5 text-center">
+      <div class="text-3xl font-black text-emerald-600 mb-1">電気車</div>
+      <p class="text-xs text-ads-muted">平均を大きく<br>下げる切り札</p>
+    </div>
+  </div>
+  <p class="text-xs text-ads-dim">出典: <a href="https://climate.ec.europa.eu/eu-action/transport-decarbonisation/road-transport/cars-and-vans_en" class="underline hover:text-ads-accent">欧州委員会 Climate Action — Cars and vans</a></p>
+</section>
+
+<!-- SECTION: このツールでできること -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+      <i data-lucide="layout-grid" class="w-5 h-5 text-emerald-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">画面は4つに分かれている</h2>
+  </div>
+
+  <p class="mb-6 leading-relaxed">左から右へ、<strong class="text-slate-800">入力 → ルール → 結果 → AI分析</strong>の流れ。Excelを行き来する必要がありません。</p>
+
+  <!-- App UI mockup -->
+  <div class="bg-slate-900 rounded-2xl overflow-hidden border border-slate-700 mb-6">
+    <div class="flex items-center gap-2 px-4 py-2.5 bg-slate-800 border-b border-slate-700">
+      <div class="flex gap-1.5">
+        <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+        <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+        <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+      </div>
+      <div class="flex-1 bg-slate-700/50 rounded-md px-3 py-1 text-[11px] text-slate-400 text-center">欧州CO₂規制シナリオ・シミュレーター</div>
+    </div>
+    <div class="grid grid-cols-4 gap-px bg-slate-700 p-px">
+      <div class="bg-white p-3 min-h-[140px]">
+        <div class="text-[10px] font-bold text-blue-600 mb-2">1 売る車</div>
+        <div class="space-y-1.5 text-[10px] text-slate-600">
+          <div class="flex justify-between bg-slate-50 rounded px-2 py-1"><span>SUV（ガソリン）</span><span>12,000台</span></div>
+          <div class="flex justify-between bg-slate-50 rounded px-2 py-1"><span>コンパクトEV</span><span>8,000台</span></div>
+          <div class="flex justify-between bg-slate-50 rounded px-2 py-1"><span>小型EV</span><span>5,000台</span></div>
+        </div>
+      </div>
+      <div class="bg-white p-3 min-h-[140px]">
+        <div class="text-[10px] font-bold text-amber-600 mb-2">2 ルール</div>
+        <div class="space-y-1 text-[10px] text-slate-600">
+          <div class="bg-amber-50 rounded px-2 py-1">対象年: 2027</div>
+          <div class="bg-amber-50 rounded px-2 py-1">目標: 93 g/km</div>
+          <div class="bg-slate-100 rounded px-2 py-1 text-slate-500">委員会案 / 議会案 切替</div>
+        </div>
+      </div>
+      <div class="bg-white p-3 min-h-[140px]">
+        <div class="text-[10px] font-bold text-emerald-600 mb-2">3 結果</div>
+        <div class="text-center py-2">
+          <div class="text-2xl font-black text-red-500">87%</div>
+          <div class="text-[10px] text-slate-500">達成率</div>
+          <div class="text-[10px] text-red-600 mt-2 font-medium">想定罰金 €420万</div>
+        </div>
+      </div>
+      <div class="bg-white p-3 min-h-[140px] border-l-2 border-purple-400">
+        <div class="text-[10px] font-bold text-purple-600 mb-2">4 AI分析</div>
+        <div class="text-[10px] text-slate-600 leading-relaxed">
+          「EVを3,000台増やすと達成圏内」<br>
+          「議会案に切替すると…」
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="bg-white border border-ads-border rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="car" class="w-5 h-5 text-blue-600"></i>
+        <h3 class="font-bold text-slate-900">Pane 1 — 売る車のリスト</h3>
+      </div>
+      <p class="text-sm text-ads-muted leading-relaxed">最大10車種。ガソリン車・プラグインハイブリッド・電気車を選び、台数と排気量の目安を入力。2025年実績ベース / 2026年予測ベースを切り替え可能。</p>
+    </div>
+    <div class="bg-white border border-ads-border rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="file-text" class="w-5 h-5 text-amber-600"></i>
+        <h3 class="font-bold text-slate-900">Pane 2 — ルールの設定</h3>
+      </div>
+      <p class="text-sm text-ads-muted leading-relaxed">「委員会案」「議会案（より厳しい）」をボタン一発で切替。対象年（2025/2027/2030）ごとに目標値を調整できる。</p>
+    </div>
+    <div class="bg-white border border-ads-border rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="gauge" class="w-5 h-5 text-emerald-600"></i>
+        <h3 class="font-bold text-slate-900">Pane 3 — 結果（リアルタイム）</h3>
+      </div>
+      <p class="text-sm text-ads-muted leading-relaxed">数字を変えるたびに、達成率・平均排気量・想定罰金が即更新。会議中に「EVを5,000台増やしたら？」をその場で試せる。</p>
+    </div>
+    <div class="bg-white border border-ads-border rounded-xl p-5">
+      <div class="flex items-center gap-2 mb-3">
+        <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
+        <h3 class="font-bold text-slate-900">Pane 4 — AIアナリスト</h3>
+      </div>
+      <p class="text-sm text-ads-muted leading-relaxed">ボタン一つで「どうすれば達成できるか」「社内説明用の要約」を自動生成。会議のたたき台づくりが短縮される。</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: メリット -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+      <i data-lucide="megaphone" class="w-5 h-5 text-amber-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">このツールの強み</h2>
+  </div>
+
+  <div class="space-y-4">
+    <div class="flex gap-4 bg-gradient-to-r from-blue-50 to-white border border-blue-100 rounded-xl p-5">
+      <div class="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0 font-black text-lg">1</div>
+      <div>
+        <h3 class="font-black text-slate-900 text-lg mb-1">「もし売れたら、いくら払う？」が秒でわかる</h3>
+        <p class="text-sm text-ads-muted leading-relaxed">販売計画が固まる前に、罰金リスクを数字で見える化。後から「知らなかった」が起きにくくなる。</p>
+      </div>
+    </div>
+    <div class="flex gap-4 bg-gradient-to-r from-emerald-50 to-white border border-emerald-100 rounded-xl p-5">
+      <div class="w-12 h-12 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0 font-black text-lg">2</div>
+      <div>
+        <h3 class="font-black text-slate-900 text-lg mb-1">厳しい案が来ても、ボタン一つで比較</h3>
+        <p class="text-sm text-ads-muted leading-relaxed">「今の案」と「より厳しい議会修正案」をすぐ切り替え。政治ニュースが出た週の会議準備が楽になる。</p>
+      </div>
+    </div>
+    <div class="flex gap-4 bg-gradient-to-r from-purple-50 to-white border border-purple-100 rounded-xl p-5">
+      <div class="w-12 h-12 rounded-full bg-purple-600 text-white flex items-center justify-center shrink-0 font-black text-lg">3</div>
+      <div>
+        <h3 class="font-black text-slate-900 text-lg mb-1">シナリオを名前付きで保存・共有</h3>
+        <p class="text-sm text-ads-muted leading-relaxed">「保守案」「EV加速案」など、試算パターンをクラウドに保存。あとから読み込んで続きから議論できる。</p>
+      </div>
+    </div>
+    <div class="flex gap-4 bg-gradient-to-r from-amber-50 to-white border border-amber-100 rounded-xl p-5">
+      <div class="w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center shrink-0 font-black text-lg">4</div>
+      <div>
+        <h3 class="font-black text-slate-900 text-lg mb-1">AIが「次に何をすべきか」を言語化</h3>
+        <p class="text-sm text-ads-muted leading-relaxed">数字だけで終わらず、対策の方向性と社内説明用の要約まで自動生成。資料づくりのスタート地点になる。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: 使い方 -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+      <i data-lucide="play-circle" class="w-5 h-5 text-blue-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">3ステップで試せる</h2>
+  </div>
+
+  <div class="flex flex-col md:flex-row gap-4">
+    <div class="flex-1 bg-white border border-ads-border rounded-xl p-5 relative">
+      <div class="absolute -top-3 left-4 bg-blue-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">STEP 1</div>
+      <div class="mt-2">
+        <i data-lucide="edit-3" class="w-6 h-6 text-blue-600 mb-2"></i>
+        <h3 class="font-bold text-slate-900 mb-2">車種と台数を入れる</h3>
+        <p class="text-sm text-ads-muted">サンプルデータが最初から入っているので、すぐ触れる。</p>
+      </div>
+    </div>
+    <div class="flex-1 bg-white border border-ads-border rounded-xl p-5 relative">
+      <div class="absolute -top-3 left-4 bg-amber-500 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">STEP 2</div>
+      <div class="mt-2">
+        <i data-lucide="sliders" class="w-6 h-6 text-amber-600 mb-2"></i>
+        <h3 class="font-bold text-slate-900 mb-2">ルールを選ぶ</h3>
+        <p class="text-sm text-ads-muted">委員会案か議会案か、対象年はいつかを選ぶ。</p>
+      </div>
+    </div>
+    <div class="flex-1 bg-white border border-ads-border rounded-xl p-5 relative">
+      <div class="absolute -top-3 left-4 bg-emerald-600 text-white text-xs font-bold px-2.5 py-0.5 rounded-full">STEP 3</div>
+      <div class="mt-2">
+        <i data-lucide="eye" class="w-6 h-6 text-emerald-600 mb-2"></i>
+        <h3 class="font-bold text-slate-900 mb-2">結果を見て、調整を繰り返す</h3>
+        <p class="text-sm text-ads-muted">EVを増やす・台数を変える → 罰金がどう変わるかを確認。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: Before/After -->
+<section class="mb-16 md:mb-20">
+  <div class="flex items-center gap-3 mb-6">
+    <div class="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center shrink-0">
+      <i data-lucide="git-compare" class="w-5 h-5 text-red-600"></i>
+    </div>
+    <h2 class="text-2xl font-black text-slate-900">Before / After</h2>
+  </div>
+
+  <div class="grid md:grid-cols-2 gap-4">
+    <div class="bg-red-50 border border-red-200 rounded-xl overflow-hidden">
+      <div class="bg-red-500/10 px-4 py-2 border-b border-red-200 flex items-center gap-2">
+        <i data-lucide="x" class="w-4 h-4 text-red-600"></i>
+        <span class="font-bold text-red-800 text-sm">これまで</span>
+      </div>
+      <ul class="p-5 space-y-3 text-sm text-red-900/80">
+        <li class="flex gap-2"><i data-lucide="minus" class="w-4 h-4 shrink-0 mt-0.5"></i>Excelと資料を行き来</li>
+        <li class="flex gap-2"><i data-lucide="minus" class="w-4 h-4 shrink-0 mt-0.5"></i>「厳しい案が来た」たびに作り直し</li>
+        <li class="flex gap-2"><i data-lucide="minus" class="w-4 h-4 shrink-0 mt-0.5"></i>罰金感覚が数字で共有しにくい</li>
+        <li class="flex gap-2"><i data-lucide="minus" class="w-4 h-4 shrink-0 mt-0.5"></i>説明資料は毎回ゼロから</li>
+      </ul>
+    </div>
+    <div class="bg-emerald-50 border border-emerald-200 rounded-xl overflow-hidden">
+      <div class="bg-emerald-500/10 px-4 py-2 border-b border-emerald-200 flex items-center gap-2">
+        <i data-lucide="check" class="w-4 h-4 text-emerald-600"></i>
+        <span class="font-bold text-emerald-800 text-sm">このツールなら</span>
+      </div>
+      <ul class="p-5 space-y-3 text-sm text-emerald-900/80">
+        <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5 text-emerald-600"></i>1画面で入力〜結果まで完結</li>
+        <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5 text-emerald-600"></i>プリセット切替で即比較</li>
+        <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5 text-emerald-600"></i>罰金・達成率がリアルタイム表示</li>
+        <li class="flex gap-2"><i data-lucide="check" class="w-4 h-4 shrink-0 mt-0.5 text-emerald-600"></i>AIが対策案と要約を生成</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: 注意 -->
+<section class="mb-10">
+  <div class="bg-ads-surface border border-ads-border rounded-xl p-5">
+    <div class="flex items-start gap-3">
+      <i data-lucide="info" class="w-5 h-5 text-ads-accent shrink-0 mt-0.5"></i>
+      <div>
+        <h3 class="font-bold text-slate-900 mb-2">使うときの前提</h3>
+        <ul class="text-sm text-ads-muted space-y-2 leading-relaxed">
+          <li>画面上の車種名・数値は<strong class="text-slate-700">サンプル（架空）</strong>です。実車データではありません。</li>
+          <li>あくまで<strong class="text-slate-700">社内のたたき台試算</strong>。最終判断は公式計算・法務確認が必要です。</li>
+          <li>複数メーカーで協力する「プール制度」など、一部の制度は v1 では含みません。</li>
+          <li>本番URLは社内専用（パスワード保護）。外部公開は想定していません。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="text-center bg-gradient-to-br from-emerald-600 to-blue-600 rounded-2xl p-8 md:p-10 text-white">
+  <p class="text-sm font-medium text-white/80 mb-2">キャッチコピー</p>
+  <p class="text-2xl md:text-3xl font-black mb-4 leading-tight">
+    売る前に、罰金が見える。<br>
+    議論の前に、対策が見える。
+  </p>
+  <p class="text-sm text-white/70 max-w-md mx-auto">
+    欧州CO₂規制シナリオ・シミュレーター — 販売計画と排ガスルールを、ひとつの画面で試算する社内ツール
+  </p>
+</div>
+
+  </main>
+  <footer class="max-w-3xl mx-auto px-5 pb-10 pt-6 border-t border-ads-border/30">
+    <p class="text-xs text-ads-dim text-center">AI-Driven School の図解ツールで作成</p>
+  </footer>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>lucide.createIcons();</script>
+</body>
+</html>
